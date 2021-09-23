@@ -1,0 +1,119 @@
+###Packages:
+library(dplyr)
+library(gridExtra)
+
+if(!is.na(seed)){
+  set.seed(seed)
+}
+
+###Load data:
+table1_df_overall <- loadCounterfactualData(c("No Vaccines"),
+                                            group_by = NULL)
+table1_df_income <- loadCounterfactualData(c("No Vaccines"),
+                                           group_by = "income_group")
+
+table1_df_who <- loadCounterfactualData(c("No Vaccines"),
+                                        group_by = "who_region")
+table1_df_vaccine <- readRDS(
+  "counterfactuals.Rds"
+)%>%
+  rename(vaccines = `Baseline (Total Vaccines)`) %>%
+  select(iso3c, vaccines) %>%
+  left_join(
+    squire::population %>%
+      group_by(iso3c) %>%
+      summarise(
+        population = sum(n)
+      )
+  )
+table1_df_vaccine <- table1_df_vaccine %>%
+  mutate(ind = "Worldwide") %>%
+  rbind(table1_df_vaccine %>%
+          left_join(
+            readRDS(
+              "income_group.Rds"
+            ) %>%
+              rename(ind = income_group)
+          )
+  ) %>%
+  rbind(table1_df_vaccine %>%
+          left_join(
+            readRDS(
+              "who_region.Rds"
+            ) %>%
+              rename(ind = who_region)
+          )
+  ) %>%
+  group_by(ind) %>%
+  summarise(
+    vaccines = sum(vaccines),
+    population = sum(population)
+  )
+
+#function to convert to text
+writeText <- function(row, name){
+  if(is.na(row[[paste0(name,"_avg")]])){
+    ""
+  } else{
+    paste0(
+      format(row[[paste0(name,"_avg")]], scientific = FALSE, digits = 4, big.mark = ","),
+      " (",
+      format(row[[paste0(name,"_025")]], scientific = FALSE, digits = 4, big.mark = ","),
+      " - ",
+      format(row[[paste0(name,"_975")]], scientific = FALSE, digits = 4, big.mark = ","),
+      ")"
+    )
+  }
+}
+
+###table 1 overall/summary counts:
+table1 <- table1_df_overall %>%
+  mutate(` ` = "Worldwide") %>%
+  add_row(` ` = "by Income-Group:") %>%
+  rbind(
+    table1_df_income %>%
+      rename(` ` = income_group)
+  ) %>%
+  add_row(` ` = "by WHO-Region:") %>%
+  rbind(
+    table1_df_who %>%
+      rename(` ` = who_region)
+  ) %>%
+  select(` `, averted_deaths_025, averted_deaths_avg, averted_deaths_975) %>%
+  #Add population and vaccine data
+  left_join(
+    table1_df_vaccine %>%
+      rename(` ` = ind)
+  ) %>%
+  mutate(across(.col = starts_with("averted_deaths_"), list(
+    per_pop = ~ .x/population * 10000,
+    per_vacc = ~ .x/vaccines * 10000
+  ),
+  .names = "{.fn}_{.col}"),
+  ` ` = if_else(
+    ` ` %in% c("by Income-Group:", "by WHO-Region:", "Worldwide"),
+    ` `,
+    paste0("   ", ` `)
+  )
+  ) %>%
+  rowwise() %>%
+  mutate(`Averted Deaths` = writeText(.data, "averted_deaths"),
+         `Averted Deaths\nPer 10k People` = writeText(.data, "per_pop_averted_deaths"),
+         `Averted Deaths\nPer 10k Vaccines` = writeText(.data, "per_vacc_averted_deaths")) %>%
+  select(` `, `Averted Deaths`, `Averted Deaths\nPer 10k People`,  `Averted Deaths\nPer 10k Vaccines`)
+
+
+
+pdf("averted_table.pdf", height=11, width=10)
+grid.table(table1,
+           theme =
+             ttheme_default(core=list(fg_params=list(
+               hjust=0,
+               x=0.025,
+               fontface=c("plain", "italic", rep("plain", 4), "italic", rep("plain", 6))
+             ))),
+           rows = NULL
+)
+dev.off()
+
+

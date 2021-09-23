@@ -1,0 +1,151 @@
+---
+title: "Creating the Report"
+author: "Greg Barnsley"
+date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
+knit: (function(inputFile, encoding) { 
+      rmarkdown::render(inputFile,
+                        encoding=encoding, 
+                        output_file=file.path(here::here(), "docs", "create_report.html")) })
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = here::here())
+```
+
+## Parameter Choices
+
+```{r, echo=TRUE, eval=FALSE}
+date <- "2021-09-09"
+```
+
+Here we set up our parameters to run the report. Whilst `date` is the only one we 
+set there are more parameters available such as `excess` which we will set in
+the code as our report will make use of the excess mortality fits for the main
+body of the report. Also note that for some of these tasks `excess` and `date` 
+do nothing in the code, this is just to make sure that the file is using the 
+relevant fits/simulations etc.
+
+## Get Model Fits
+
+```{r, echo=TRUE, eval=FALSE}
+repo <- "SET THIS TO THE LOCATION OF YOUR VERSION OF THE GLOBAL_LMIC_REPORTS_ORDERLY"
+fetch_fit_id <- orderly::orderly_run("fetch_fits",
+                                     parameters = list(
+                                       date = date,
+                                       excess = TRUE,
+                                       repo = repo
+                                     ), echo = FALSE)
+orderly::orderly_commit(fetch_fit_id)
+```
+
+This fetches the model fit objects for report. This take all available objects
+from the dedicated fitting repo and requires you to have generated your own fits
+with that. Alternatively you can use an included set of fits
+
+## Get other data sources
+
+```{r, echo=TRUE, eval=FALSE}
+world_map_id <- orderly::orderly_run("world_map", echo = FALSE)
+orderly::orderly_commit(world_map_id)
+
+owid_id <- orderly::orderly_run("owid", parameters = list(date = date), echo = FALSE)
+orderly::orderly_commit(owid_id)
+
+income_group_id <- orderly::orderly_run("income_group", echo = FALSE)
+orderly::orderly_commit(income_group_id)
+
+who_region_id <- orderly::orderly_run("who_region", echo = FALSE)
+orderly::orderly_commit(who_region_id)
+```
+
+This gets any other data used e.g. Our World in Data. Archive versions of these 
+will be provided with the model fits in the interests of reproducbility. All 
+other orderly tasks only draw from objects inside the repo.
+
+## Simulate Counterfactuals
+
+```{r, echo=TRUE, eval=FALSE}
+run_simulations_id <- orderly::orderly_run("run_simulations",
+                                           parameters = list(
+                                             date = date,
+                                             seed = 100100,
+                                             excess = FALSE,
+                                             draws = 15
+                                           ), echo = FALSE)
+orderly::orderly_commit(run_simulations_id)
+```
+
+This is one of the slowest parts of the report. As the number of the draws and 
+counter-factuals increases the R objects become very large so it is optimised to 
+reduce memory usage and not for speed.
+
+## Create interactive world map
+
+```{r, echo=TRUE, eval=FALSE}
+interactive_map_id <- orderly::orderly_run("interactive_map",
+                                           parameters = list(
+                                             date = date,
+                                             excess = FALSE
+                                           ), echo = FALSE)
+orderly::orderly_commit(interactive_map_id)
+
+#copy files across to github pages directory
+destination <- file.path(here::here(), "docs")
+origin <- file.path(here::here(), "archive", "interactive_map", 
+                    interactive_map_id, "web_page")
+for(file in list.files(origin)){
+  file.copy(file.path(origin, file), file.path(destination, file), overwrite = TRUE)
+}
+```
+
+This task generates the interactive leaflet map. The one used on the github 
+pages for this repository is copied across from the *web_page* sub directory.
+
+## Generate Table for Report
+
+```{r, echo=TRUE, eval=FALSE}
+deaths_averted_table_id <- orderly::orderly_run("deaths_averted_table",
+                                           parameters = list(
+                                             date = date,
+                                             excess = FALSE,
+                                             seed = 1001000011
+                                           ), echo = FALSE)
+orderly::orderly_commit(deaths_averted_table_id)
+```
+
+This generates a pdf of a table of the counter factual deaths averted.
+
+## Generate Figures for Report
+
+```{r, echo=TRUE, eval=FALSE}
+dot_plots_id <- orderly::orderly_run("dot_plots",
+                                           parameters = list(
+                                             date = date,
+                                             excess = FALSE
+                                           ), echo = FALSE)
+orderly::orderly_commit(dot_plots_id)
+
+
+global_deaths_averted_plot_id <- orderly::orderly_run("global_deaths_averted_plot",
+                                           parameters = list(
+                                             date = date,
+                                             excess = FALSE,
+                                             seed = 1000100
+                                           ), echo = FALSE)
+orderly::orderly_commit(global_deaths_averted_plot_id)
+
+
+tile_plots_id <- orderly::orderly_run("tile_plots",
+                                           parameters = list(
+                                             date = date,
+                                             excess = FALSE,
+                                             seed = 99199
+                                           ), echo = FALSE)
+orderly::orderly_commit(tile_plots_id)
+```
+
+These tasks all generate *ggplot* objects so that they are easier to modify when
+producing the report.
+
