@@ -149,3 +149,13 @@ orderly::orderly_commit(tile_plots_id)
 These tasks all generate *ggplot* objects so that they are easier to modify when
 producing the report.
 
+## Compile Main Body of Report
+
+```{r, echo=TRUE, eval=FALSE}
+report_main_id <- orderly::orderly_run("report_main",
+                                           parameters = list(
+                                             date = date,
+                                             excess = FALSE
+                                           ), echo = FALSE)
+orderly::orderly_commit(report_main_id)
+```
