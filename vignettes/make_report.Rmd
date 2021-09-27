@@ -17,7 +17,7 @@ knitr::opts_knit$set(root.dir = here::here())
 ## Parameter Choices
 
 ```{r, echo=TRUE, eval=FALSE}
-date <- "2021-09-09"
+date <- "2021-09-19"
 ```
 
 Here we set up our parameters to run the report. Whilst `date` is the only one we 

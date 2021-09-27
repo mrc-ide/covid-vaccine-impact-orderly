@@ -3,8 +3,10 @@
 
 if(excess){
   report <- "excess_mortality"
+  file <- "res.Rds"
 } else {
   report <- "lmic_reports_vaccine"
+  file <- "grid_out.Rds"
 }
 
 # ------------------------------------------------------------------------------
@@ -69,7 +71,7 @@ reports_day <- function(reports = "lmic_reports_vaccine", date = NULL) {
 reports <- reports_day(report, date)
 
 fits <- lapply(reports$id, function(x){
-  readRDS(file.path(repo, "archive", report, x, "grid_out.Rds"))
+  readRDS(file.path(repo, "archive", report, x, file))
 })
 
 names(fits) <- reports$country
@@ -77,4 +79,4 @@ names(fits) <- reports$country
 #read in fits and save
 saveRDS(fits, "countryfits.Rds")
 
-dbDisconnect()
+tryCatch(dbDisconnect(), error = function(x){NULL})
