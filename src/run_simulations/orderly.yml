@@ -117,6 +117,7 @@ sources:
   - R/nimue_utils.R
   - R/pmcmc_utils.R
   - R/utils-pipe.R
+  - R/excess_log_likelihood.R
 
 # Resources that the script needs to run; this is an array of strings
 # representing filenames *relative to, and below, this directory*.

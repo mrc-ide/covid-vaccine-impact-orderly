@@ -8,13 +8,17 @@ parallel <- TRUE
 
 #which countries do we have
 fits <-  readRDS("countryfits.Rds")
+#create a temporary subdirectory to make access quicker
+dir.create("temp", showWarnings = FALSE)
 iso3cs <- c()
 for(i in seq_along(fits)){
   if(!is.null(fits[[i]][["pmcmc_results"]])){
     iso3cs <- c(iso3cs, names(fits[i]))
+    saveRDS(fits[[i]], paste0("temp/",names(fits[i]), ".Rds"))
   }
 }
 remove(i)
+
 
 #get baseline vaccines from nimue data (this doesn't get vaccine info for countries with out fits)
 baseline <- lapply(iso3cs, function(x){
@@ -153,7 +157,7 @@ vaccineStart <- vaccineStart[1]
 deaths_averted_list <- apply(counterfactuals,
                              1, function(x) {
                                message(x["iso3c"])
-                               out <- readRDS("countryfits.Rds")[[x["iso3c"]]]
+                               out <- readRDS(paste0("temp/", as.character(x["iso3c"]), ".Rds"))
 
                                #set up the counter factual labels and the assigned vaccines
                                assignments <- as.vector(x[-1], mode = "double")
@@ -172,10 +176,14 @@ deaths_averted_list <- apply(counterfactuals,
                                                 assignedVaccine = assignments,
                                                 vaccineStart = vaccineStart,
                                                 direct = TRUE,
-                                                noWarnings = TRUE)
+                                                noWarnings = TRUE,
+                                                excess = excess)
                                )
                                return(df)
                              })
+
+#delete temporary folder
+unlink("temp", recursive = TRUE)
 
 #save each counterfactual seperately
 for(thisCounterfactual in

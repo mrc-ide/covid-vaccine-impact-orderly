@@ -200,14 +200,16 @@ they did in reality. This makes the model's value of *R<sub>t</sub>* higher than
 it should be, meaning that for the *No Vaccines* counter-factual the deaths 
 averted should be viewed as an upper estimate the true deaths averted.
 
-This is more complicated for the other counter-factuals since some countries will
-be receiving more vaccines than they did in reality hence their *R<sub>t</sub>* 
-is likely too low as the country may have reduced their non-vaccine 
-interventions more than they did in reality.
+<!-- This is more complicated for the other counter-factuals since some countries will -->
+<!-- be receiving more vaccines than they did in reality hence their *R<sub>t</sub>*  -->
+<!-- is likely too low as the country may have reduced their non-vaccine  -->
+<!-- interventions more than they did in reality. -->
 
-These models are currently fitted using reported deaths and some of the reported
-cases. Hence this is dependent on the quality of the reported data from each
-country and is sensitive to under-reporting.
+<!-- These models are currently fitted using reported deaths and some of the reported -->
+<!-- cases. Hence this is dependent on the quality of the reported data from each -->
+<!-- country and is sensitive to under-reporting. -->
+
+These models are fitted to an excess death estimate, taken from [here](https://github.com/TheEconomist/covid-19-the-economist-global-excess-deaths-model), and so are dependant on the quality of these estimates. Please also note that the model uncertainity does not account for uncertainting the excess mortality estimates.
 
 Column
 -------------------------------------

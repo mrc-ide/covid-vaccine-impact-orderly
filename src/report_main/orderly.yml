@@ -88,17 +88,9 @@ parameters:
 # reports.
 #
 packages:
-  - rmarkdown
-  - flexdashboard
-  - dplyr
-  - tidyr
-  - sf
-  - leaflet
-  - rmapshaper
-  - mapview
   - knitr
   - rmarkdown
-  - squire
+  - gridExtra
 
 
 # Source files, in addition to the script.  Typically these will
@@ -150,4 +142,15 @@ resources:
 #           other-data.csv: data.csv
 #
 depends:
-
+  global_deaths_averted_plot:
+    id: latest
+    use:
+      global_deaths_averted.Rds: plots/global_deaths_averted.Rds
+  deaths_averted_table:
+    id: latest
+    use:
+      averted_table.Rds: averted_table.Rds
+  tile_plots:
+    id: latest
+    use:
+      tile_plot.Rds: plots/tile_plot.Rds

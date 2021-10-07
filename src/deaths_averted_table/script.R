@@ -1,6 +1,3 @@
-###Packages:
-library(dplyr)
-library(gridExtra)
 
 if(!is.na(seed)){
   set.seed(seed)
@@ -103,17 +100,6 @@ table1 <- table1_df_overall %>%
   select(` `, `Averted Deaths`, `Averted Deaths\nPer 10k People`,  `Averted Deaths\nPer 10k Vaccines`)
 
 
-
-pdf("averted_table.pdf", height=11, width=10)
-grid.table(table1,
-           theme =
-             ttheme_default(core=list(fg_params=list(
-               hjust=0,
-               x=0.025,
-               fontface=c("plain", "italic", rep("plain", 4), "italic", rep("plain", 6))
-             ))),
-           rows = NULL
-)
-dev.off()
+saveRDS(table1, "averted_table.Rds")
 
 

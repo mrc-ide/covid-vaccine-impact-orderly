@@ -46,7 +46,7 @@ script: script.R
 artefacts:
   - staticgraph:
       description: A table of deaths averted by vaccinations
-      filenames: averted_table.pdf
+      filenames: averted_table.Rds
 
 # An optional name to describe the report in more detail than its
 # directory name (which must be short) but less detail than
