@@ -28,7 +28,7 @@ and health related data [@JHU; @OWID-Vaccines; @OWID-Testing; @Liun415;
 @who_malaria; @who_tb; @who_gho] as covariates.
 
 Additional data sources used to parameterise our models vaccinations were taken 
-from @OWID-Vaccines and @who_dash. STUFF ABOUT vaccine EFFICACY
+from @OWID-Vaccines and @who_dash. 
 
 We characterised our adjustments for the delta variant of COVID-19 using variant
 sequence data from @covariants, as well as estimates of the variants relative
@@ -167,6 +167,8 @@ be found [here](https://mrc-ide.github.io/covid-vaccine-impact-orderly/web-map.h
 bit about uncertainty in estimates
 
 rt effected by presence of vaccine etc
+
+assumption that all excess mortality is due to covid
 
 # Bibilography
 

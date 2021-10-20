@@ -100,10 +100,12 @@ generated_params <- data.frame(
   Value = c(example_fits$parameters$dur_V,
             paste0(unique(example_fits$parameters$rel_infectiousness_vaccinated)*100, "%"),
             example_fits$parameters$dur_vaccine_delay),
-  Description = c("How long until vaccine protection (both types) wanes",
+  Description = c("How long until vaccine protection (both types) wanes. Roughly calculated 
+    from the time to 50% efficacy (150 days) from 70%, so that by that time 30% of those 
+    vaccinated have returned to being susceptible.",
                   "If a vaccinated person is infected how does their infectiousness compare to the unvaccinated",
                   "Duration from vaccination to development of protection (both types)"),
-  Source = c("-",
+  Source = c("@vaccine_waning",
              "-",
              "-"),
   category = "v1"
@@ -132,7 +134,8 @@ generated_params <- data.frame(
     Description = c(
       "The time from the Delta variant's introduction to the country to becoming the dominant strain of COVID-19.",
       "The relative increase in probability of hospitalisation for people infected with the Delta variant.",
-      "The percentage of people previously infected with a non-Delta variant, who would not have become susceptible to re-infection with the non-Delta variants over the shift period, who will be susceptible to being re-infected with the Delta variant.",
+      "Percentage of those previously infected with a non-delta variant who would 
+    be susceptible to the Delta variant.",
       "Reduced vaccine effectiveness for the Delta variant.",
       "See above.",
       "See above.",
@@ -141,11 +144,11 @@ generated_params <- data.frame(
     Source = c(
       "-",
       "@prob_hosp_delta",
-      "-",
-      "-",
-      "-",
-      "-",
-      "-"
+      "@immune_escape_proper",
+      "@vacc_eff_inf_delta",
+      "@vacc_eff_inf_delta  REACT Round 14",
+      "PHE Vaccine Effectiveness against Hospitalisation preprint",
+      "PHE Vaccine Effectiveness against Hospitalisation preprint"
     ),
     category = "d1"
     )
@@ -295,41 +298,6 @@ table_params <- rbind(generated_params, manual_params, titles_df) %>%
 
 #get which ones should be italics
 bold <- which(table_params$Value == "")
-
-```
-
-```{r, include = FALSE}
-#adjustments to what I want to use
-table_params[table_params$Parameter=="Delta Variant immune escape percentage",] <- 
-  c("Delta Variant immune escape percentage",
-    "61.3%",
-    "Percentage of those previously infected with a non-delta variant who would 
-    be susceptible to the Delta variant. Taken from a modelling estimate of 
-    immune escape for the Beta variant, which has a similar reduction in 
-    neutralising antibodies to the Delta variant.",
-    "@delta_beta_antibodies @immune_modelling")
-
-table_params[table_params$Parameter %in% c(
-  "Vaccine Effectiveness Disease-single dose,\nagainst Delta Variant",
-  "Vaccine Effectiveness Disease-two doses,\nagainst Delta Variant"),c("Value", "Source")] <- 
-  matrix(c("75%", "PHE Vaccine Effectiveness against Hospitalisation preprint",
-           "94%", "PHE Vaccine Effectiveness against Hospitalisation preprint"), byrow = TRUE,
-         nrow = 2)
-
-table_params[table_params$Parameter %in% c(
-  "Vaccine Effectiveness Infection-single dose,\nagainst Delta Variant",
-  "Vaccine Effectiveness Infection-two doses,\nagainst Delta Variant"),c("Value", "Source")] <- 
-  matrix(c("22.4%", "@vacc_eff_inf_delta",
-           "64.6%", "@vacc_eff_inf_delta"), byrow = TRUE,
-         nrow = 2)
-
-table_params[table_params$Parameter == "Mean Period of Vaccine Protection",] <-
-  c("Mean Period of Vaccine Protection", 
-    "446", 
-    "How long until vaccine protection (both types) wanes. Roughly calculated 
-    from the time to 50% efficacy (150 days) from 70%, so that by that time 30% of those 
-    vaccinated have returned to being susceptible.",
-    "@vaccine_waning")
 
 ```
 
