@@ -17,7 +17,7 @@ knitr::opts_knit$set(root.dir = here::here())
 ## Parameter Choices
 
 ```{r, echo=TRUE, eval=FALSE}
-date <- "2021-09-19"
+date <- "2021-10-23"
 ```
 
 Here we set up our parameters to run the report. Whilst `date` is the only one we 
@@ -31,9 +31,9 @@ relevant fits/simulations etc.
 
 ```{r, echo=TRUE, eval=FALSE}
 #SET THIS TO THE LOCATION OF YOUR VERSION OF THE GLOBAL_LMIC_REPORTS_ORDERLY:
-repo <- "C:/Users/gbarnsle/Documents/Repos/global-lmic-reports-orderly"
+repo <- "C:\\Users\\gbarnsle\\Documents\\Covid Vaccine Impact\\global-lmic-reports-orderly"
 #are the fits present on this system
-fits_present <- FALSE
+fits_present <- TRUE
 if(fits_present){
   fetch_fit_id <- orderly::orderly_run("fetch_fits",
                                      parameters = list(

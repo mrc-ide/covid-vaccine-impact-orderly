@@ -28,11 +28,15 @@ excess_log_likelihood <- function(pars, data, squire_model, model_params, pars_o
     tt_beta <- 0
   }
   else {
-    tt_list <- squire:::intervention_dates_for_odin(dates = c(start_date, date_Rt_change),
-                                                    change = rep(1, length(date_Rt_change) + 1), start_date = start_date, steps_per_day = round(1/model_params$dt),
+    #get the Rt values from R0 and the Rt_change values
+    Rt <- evaluate_Rt_pmcmc_custom(R0 = R0, pars = pars, Rt_args = Rt_args)
+    #get the dates in t and the corresponding Rt indexes
+    tt_list <- squire:::intervention_dates_for_odin(dates = date_Rt_change,
+                                                    change = seq(2, length(Rt)), start_date = start_date, steps_per_day = round(1/model_params$dt),
                                                     starting_change = 1)
     model_params$tt_beta <- tt_list$tt
-    date_Rt_change <- tt_list$dates
+    #reduce Rt to the values needed
+    Rt <- Rt[tt_list$change]
   }
   if (is.null(date_contact_matrix_set_change)) {
     tt_contact_matrix <- 0
@@ -99,11 +103,9 @@ excess_log_likelihood <- function(pars, data, squire_model, model_params, pars_o
     model_params$prob_hosp <- model_params$prob_hosp[tt_list$change,
                                                      , ]
   }
-  #calculate R0 using new function
-  R0 <- evaluate_Rt_pmcmc_custom(R0 = R0, date_Rt_change = date_Rt_change,
-                                 pars = pars, Rt_args = Rt_args)
+  #calculate Beta from Rt
   beta_set <- squire:::beta_est(squire_model = squire_model, model_params = model_params,
-                                R0 = R0)
+                                R0 = Rt)
   model_params$beta_set <- beta_set
   if (inherits(squire_model, "stochastic")) {
     pf_result <- squire:::run_particle_filter(data = data, squire_model = squire_model,
@@ -124,14 +126,18 @@ excess_log_likelihood <- function(pars, data, squire_model, model_params, pars_o
 }
 
 
-
 run_deterministic_comparison_excess <- function(data, squire_model, model_params, model_start_date = "2020-02-02",
                                                 obs_params = list(
                                                   phi_cases = 0.1,
-                                                  k_cases = 2,
+                                                  k_cases = 7,
                                                   phi_death = 1,
-                                                  k_death = 2,
-                                                  exp_noise = 1e02
+                                                  k_death = 7,
+                                                  exp_noise = 1e+07,
+                                                  likelihood = function(model_deaths, data_deaths){
+                                                    squire:::ll_nbinom(data_deaths, model_deaths, obs_params$phi_death,
+                                                                       obs_params$k_death,
+                                                                       obs_params$exp_noise)
+                                                  }
                                                 ), forecast_days = 0, save_history = FALSE,
                                                 return = "ll") {
 
@@ -162,23 +168,49 @@ run_deterministic_comparison_excess <- function(data, squire_model, model_params
   data$week_end[nrow(data)] <- data$week_start[nrow(data)] +
     data$week_end[nrow(data)-1]  - data$week_start[nrow(data)-1]
 
-  # here we change the dur_R for 60 days from delta_start_date
-  if("dur_R" %in% names(obs_params)) {
-    if(obs_params$dur_R != 365) {
-      ch_dur_R <- as.integer(as.Date(obs_params$delta_start_date) - model_start_date)
-      model_params$tt_dur_R <- c(0, ch_dur_R, ch_dur_R+obs_params$shift_duration)
-      model_params$gamma_R <- c(model_params$gamma_R, 2/obs_params$dur_R, model_params$gamma_R)
-    }
-  }
-
-  # here we change the prob_hosp as needed
-  if("prob_hosp_multiplier" %in% names(obs_params)) {
-    if(obs_params$prob_hosp_multiplier != 1) {
-      ch_dur_R <- as.integer(as.Date(obs_params$delta_start_date) - model_start_date)
-      model_params$tt_prob_hosp_multiplier <- c(0, seq(ch_dur_R, ch_dur_R + obs_params$shift_duration, by = 1))
-      model_params$prob_hosp_multiplier <- seq(model_params$prob_hosp_multiplier,
-                                               obs_params$prob_hosp_multiplier,
-                                               length.out = length(model_params$tt_prob_hosp_multiplier))
+  #make the delta adjustments
+  if("prob_hosp_multiplier" %in% names(obs_params) |
+     "dur_R" %in% names(obs_params)) {
+    #get the dates in the shift as t
+    shift_start <- as.integer(as.Date(obs_params$delta_start_date) - model_start_date)
+    shift_end <- as.integer(as.Date(obs_params$delta_start_date) -
+                              model_start_date +
+                              obs_params$shift_duration)
+    #if the epidemic starts before the end of the shift we just swap over the numbers
+    if(shift_end <= 0 & "prob_hosp_multiplier" %in% names(obs_params)){
+      model_params$prob_hosp_multiplier <- obs_params$prob_hosp_multiplier
+    } else {
+      #we must figure where along we are and fit that in, slowly increase the
+      #modified parameter until we reach the end of the shift
+      if("prob_hosp_multiplier" %in% names(obs_params) & (
+        obs_params$prob_hosp_multiplier != model_params$prob_hosp_multiplier
+        | is.null(model_params$prob_hosp_multiplier)
+      )){
+        #update prob_hosp
+        tt_prob_hosp_multiplier <- seq(shift_start, shift_end, by = 1)
+        prob_hosp_multiplier <- seq(model_params$prob_hosp_multiplier,
+                                    obs_params$prob_hosp_multiplier,
+                                    length.out = length(tt_prob_hosp_multiplier))
+        if(!(0 %in% tt_prob_hosp_multiplier)){
+          #since we've already covered before the start we must be after and just
+          #change the first entry to 0
+          tt_prob_hosp_multiplier[1] <- 0
+        }
+        model_params$tt_prob_hosp_multiplier <- tt_prob_hosp_multiplier
+        model_params$prob_hosp_multiplier <- prob_hosp_multiplier
+      }
+      if("dur_R" %in% names(obs_params) & (
+        2/obs_params$dur_R != model_params$gamma_R
+      )){
+        tt_dur_R <- c(shift_start, shift_end)
+        gamma_R <- c(2/obs_params$dur_R, model_params$gamma_R)
+        if(shift_start > 0){
+          tt_dur_R <- c(0, tt_dur_R)
+          gamma_R <- c(model_params$gamma_R, gamma_R)
+        }
+        model_params$tt_dur_R <- tt_dur_R
+        model_params$gamma_R <- gamma_R
+      }
     }
   }
 
@@ -194,8 +226,8 @@ run_deterministic_comparison_excess <- function(data, squire_model, model_params
   Ds[Ds < 0] <- 0
   deaths <- data$deaths[-1]
 
-  ll <- squire:::ll_nbinom(deaths, Ds, obs_params$phi_death, obs_params$k_death,
-                           obs_params$exp_noise)
+  ll <- obs_params$likelihood(Ds, deaths)
+
 
   # and wrap up as normal
   date <- data$date[[1]] + seq_len(nrow(out)) - 1L
@@ -221,15 +253,9 @@ run_deterministic_comparison_excess <- function(data, squire_model, model_params
   ret
 }
 
-evaluate_Rt_pmcmc_custom <- function(R0, date_Rt_change,
-                                     pars, Rt_args){
-  #first just double check all dates are set up correctly, other than the first
-  #date which should be the start_date, then the difference between all dates should
-  #Rt_rw_duration
-  if(any(diff(date_Rt_change[-1]) != Rt_args$Rt_rw_duration)){
-    stop("Incorrect Rt change times, please check R0/Rt code")
-  }
-  #now calculate the values
+
+evaluate_Rt_pmcmc_custom <- function(R0, pars, Rt_args){
+  #calculate the values
   Rt <- as.numeric(c(R0, R0*2*plogis(cumsum(-unlist(pars[grepl("Rt_rw", names(pars))])))))
   return(Rt)
 }

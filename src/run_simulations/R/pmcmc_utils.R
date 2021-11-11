@@ -178,7 +178,7 @@ generate_draws_inner <- function(out, pars.list, draws = 10, parallel, intervent
   # and adjust the time as before
   full_row <- match(0, apply(r$output[,"time",],2,function(x) { sum(is.na(x)) }))
   saved_full <- r$output[,"time",full_row]
-  if("date" %in% names(data$date)){
+  if("date" %in% names(data)){
     for(i in seq_len(replicates)) {
       na_pos <- which(is.na(r$output[,"time",i]))
       full_to_place <- saved_full - which(rownames(r$output) == as.Date(max(data$date))) + 1L
@@ -401,6 +401,7 @@ deaths_averted <- function(out, draws, parallel, counterfactual = "No Vaccine", 
   data <- out$pmcmc_results$inputs$data
   if("week_start" %in% names(data)){
     data$date <- data$week_start
+    out$pmcmc_results$inputs$data$date <- out$pmcmc_results$inputs$data$week_start
   }
   country <- out$parameters$country
   iso3c <- squire::population$iso3c[squire::population$country == country][1]
@@ -491,7 +492,36 @@ deaths_averted <- function(out, draws, parallel, counterfactual = "No Vaccine", 
   deaths_df <- rbind(
     deaths_df,
     baseline_deaths
-  )
+  ) #ADD REMOVED DEATHS
+
+  if(out$interventions$pre_epidemic_isolated_deaths > 0){
+    if(reduce_age){
+      deaths_df <- rbind(deaths_df,
+        expand.grid(replicate = unique(deaths_df$replicate),
+                  counterfactual = unique(deaths_df$counterfactual)) %>%
+        mutate(
+          date = NA,
+          deaths = out$interventions$pre_epidemic_isolated_deaths,
+          infections = 0
+        )
+      )
+    } else {
+      deaths_df <- rbind(deaths_df,
+                         expand.grid(replicate = unique(deaths_df$replicate),
+                                     counterfactual = unique(deaths_df$counterfactual),
+                                     age_group = unique(deaths_df$age_group)) %>%
+                           group_by(replicate, counterfactual) %>%
+                           mutate(
+                             date = NA,
+                             deaths = out$interventions$pre_epidemic_isolated_deaths/length(age_group),
+                             infections = 0
+                           ) %>% ungroup()
+      )
+    }
+  }
+
+  deaths_df <- arrange(deaths_df, counterfactual, replicate, date)
+
 
   # and add country info
   deaths_df$country <- country
