@@ -105,6 +105,7 @@ packages:
   - squire
   - countrycode
   - stringr
+  - squire.page
 
 
 # Source files, in addition to the script.  Typically these will
@@ -114,10 +115,7 @@ packages:
 # otherwise you will have to add them to "resources" (see below)
 #
 sources:
-  - R/nimue_utils.R
   - R/pmcmc_utils.R
-  - R/utils-pipe.R
-  - R/excess_log_likelihood.R
 
 # Resources that the script needs to run; this is an array of strings
 # representing filenames *relative to, and below, this directory*.

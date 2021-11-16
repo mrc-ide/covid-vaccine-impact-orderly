@@ -80,17 +80,9 @@ fig2_df_extra_data <- fig2_df %>%
       ),
     by = "iso3c"
   ) %>%
-  left_join(
-    readRDS(
-      "income_group.rds"
-    ),
-    by = "iso3c"
-  ) %>%
-  left_join(
-    readRDS(
-      "who_region.rds"
-    ),
-    by = "iso3c"
+  mutate(
+    income_group = get_income_group(iso3c),
+    who_region = get_WHO_region(iso3c)
   ) %>%
   mutate(across(
     where(is.numeric),

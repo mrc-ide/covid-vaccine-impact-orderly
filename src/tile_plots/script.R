@@ -25,12 +25,8 @@ fig3_df_standard <- fig3_df_weekly %>%
                 iso3c = unique(fig3_df_weekly$iso3c))
   ) %>%
   mutate(
-    averted_deaths_avg = if_else(is.na(averted_deaths_avg), 0, averted_deaths_avg)
-  ) %>%
-  left_join(
-    readRDS(
-      "who_region.Rds"
-    )
+    averted_deaths_avg = if_else(is.na(averted_deaths_avg), 0, averted_deaths_avg),
+    who_region = get_WHO_region(iso3c)
   ) %>%
   #assume <0 = 0
   mutate(averted_deaths_avg = if_else(averted_deaths_avg < 0, 0, averted_deaths_avg)) %>%

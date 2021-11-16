@@ -100,6 +100,7 @@ packages:
   - knitr
   - rmarkdown
   - squire
+  - squire.page
 
 
 # Source files, in addition to the script.  Typically these will
@@ -110,7 +111,6 @@ packages:
 #
 sources:
   - R/web_map_func.R
-  - R/load_counterfactuals_func.R
   - R/maps.R
 
 # Resources that the script needs to run; this is an array of strings

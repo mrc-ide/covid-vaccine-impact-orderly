@@ -93,6 +93,7 @@ packages:
   - ggplot2
   - ggpubr
   - cowplot
+  - squire.page
 
 # Source files, in addition to the script.  Typically these will
 # contain function definitions.  These will be sourced after loading
@@ -101,7 +102,6 @@ packages:
 # otherwise you will have to add them to "resources" (see below)
 #
 sources:
-  - R/load_counterfactuals_func.R
 
 # Resources that the script needs to run; this is an array of strings
 # representing filenames *relative to, and below, this directory*.
@@ -148,10 +148,6 @@ depends:
       No Vaccines.Rds: No Vaccines.Rds
       Baseline-Direct.Rds: Baseline-Direct.Rds
       Baseline.Rds: Baseline.Rds
-  income_group:
-    id: latest
-    use:
-      income_group.Rds: income_group.Rds
   owid:
     id: latest
     use:

@@ -26,21 +26,15 @@ table1_df_vaccine <- readRDS(
 table1_df_vaccine <- table1_df_vaccine %>%
   mutate(ind = "Worldwide") %>%
   rbind(table1_df_vaccine %>%
-          left_join(
-            readRDS(
-              "income_group.Rds"
-            ) %>%
-              rename(ind = income_group)
-          )
-  ) %>%
+          mutate(
+            ind = get_income_group(iso3c)
+            )
+        ) %>%
   rbind(table1_df_vaccine %>%
-          left_join(
-            readRDS(
-              "who_region.Rds"
-            ) %>%
-              rename(ind = who_region)
+          mutate(
+            ind = get_WHO_region(iso3c)
           )
-  ) %>%
+        ) %>%
   group_by(ind) %>%
   summarise(
     vaccines = sum(vaccines),

@@ -90,7 +90,7 @@ parameters:
 packages:
   - dplyr
   - orderly
-  - DBI
+  - squire.page
 
 
 # Source files, in addition to the script.  Typically these will

@@ -17,7 +17,7 @@ knitr::opts_knit$set(root.dir = here::here())
 ## Parameter Choices
 
 ```{r, echo=TRUE, eval=FALSE}
-date <- "2021-10-23"
+date <- "2021-11-13"
 ```
 
 Here we set up our parameters to run the report. Whilst `date` is the only one we 
@@ -71,12 +71,6 @@ orderly::orderly_commit(world_map_id)
 
 owid_id <- orderly::orderly_run("owid", parameters = list(date = date), echo = FALSE)
 orderly::orderly_commit(owid_id)
-
-income_group_id <- orderly::orderly_run("income_group", echo = FALSE)
-orderly::orderly_commit(income_group_id)
-
-who_region_id <- orderly::orderly_run("who_region", echo = FALSE)
-orderly::orderly_commit(who_region_id)
 ```
 
 This gets any other data used e.g. Our World in Data. Archive versions of these 

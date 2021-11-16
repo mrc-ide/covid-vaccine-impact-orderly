@@ -91,34 +91,7 @@ burdenVaccineAssignment <- burden %>%
   mutate(`Equitable-Burden` = vaccineCount*deaths/totalDeaths) %>%
   select(iso3c, `Equitable-Burden`)
 #COVAX counter-factual
-covaxISO3 <- "Afghanistan, Benin, Burkina
-Faso, Burundi, Central African Republic, Chad,
-Congo Dem. Rep., Eritrea, Ethiopia, Gambia,
-The Guinea, Guinea-Bissau, Haiti, Korea Dem.
-People’s Rep., Liberia, Madagascar, Malawi,
-Mali, Mozambique, Nepal, Niger, Rwanda,
-Sierra Leone, Somalia, South Sudan, Syrian Arab
-Republic, Tajikistan, Tanzania, Togo, Uganda,
-Yemen, Angola, Algeria,
-Bangladesh, Bhutan, Bolivia, Cabo Verde,
-Cambodia, Cameroon, Comoros, Congo, Rep.
-Côte d’Ivoire, Djibouti, Egypt Arab Rep., El
-Salvador, Eswatini, Ghana, Honduras, India,
-Indonesia, Kenya, Kiribati, Kyrgyz Republic, Lao
-PDR, Lesotho, Mauritania, Micronesia Fed.
-Sts., Moldova, Mongolia, Morocco, Myanmar,
-Nicaragua, Nigeria, Pakistan, Papua New
-Guinea, Philippines, Sao Tome and Principe,
-Senegal, Solomon Islands, Sri Lanka, Sudan,
-Timor-Leste, Tunisia, Ukraine, Uzbekistan,
-Vanuatu, Vietnam, West Bank and Gaza,
-Zambia, Zimbabwe, Dominica, Fiji, Grenada,
-Guyana, Maldives, Marshall Islands,
-Samoa, St. Lucia, St. Vincent and the Grenadines,
-Tonga, Tuvalu" %>%
-  str_replace_all("\n", " ") %>%
-  str_split(",", simplify = T) %>%
-  countrycode(origin = "country.name", destination = "iso3c")
+covaxISO3 <- get_covax_iso3c()
 #20% by end of 2021, assume start in 2021 Jan
 percentageVacc <- as.numeric(0.2*(as.Date(date) - as.Date("2021-01-01"))/365)
 covaxVaccineAssignment <- data.frame(iso3c = iso3cs) %>%
