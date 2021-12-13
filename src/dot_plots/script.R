@@ -1,7 +1,8 @@
 
 ###Load data:
 fig2_df <- loadCounterfactualData("No Vaccines",
-                                  group_by = "iso3c")
+                                  group_by = "iso3c",
+                                  exclude_iso3cs = "CHN")
 counterfactuals_df <- readRDS(
   "counterfactuals.Rds"
 )

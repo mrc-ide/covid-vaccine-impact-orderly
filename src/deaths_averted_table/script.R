@@ -5,12 +5,15 @@ if(!is.na(seed)){
 
 ###Load data:
 table1_df_overall <- loadCounterfactualData(c("No Vaccines"),
-                                            group_by = NULL)
+                                            group_by = NULL,
+                                            exclude_iso3cs = "CHN")
 table1_df_income <- loadCounterfactualData(c("No Vaccines"),
-                                           group_by = "income_group")
+                                           group_by = "income_group",
+                                           exclude_iso3cs = "CHN")
 
 table1_df_who <- loadCounterfactualData(c("No Vaccines"),
-                                        group_by = "who_region")
+                                        group_by = "who_region",
+                                        exclude_iso3cs = "CHN")
 table1_df_vaccine <- readRDS(
   "counterfactuals.Rds"
 )%>%

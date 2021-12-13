@@ -5,9 +5,6 @@ if(!seed == ""){
 
 #vector of iso3cs of bad fits
 bad_fits <- c(
- "AFG", "AGO", "BDI", "BGR", "COD", "COL", "CUB", "IDN", "KEN", "NER", "NGA",
- "SLE", "BEL", "CAN", "PRT", "SAU", "SWE", "USA", "HKG", "TZA", "ZWE", "GIN",
- "GBR", "ITA", "TCD"
 )
 
 
@@ -15,21 +12,21 @@ bad_fits <- c(
 df_overall <- loadCounterfactualData(c("No Vaccines"),
                                             group_by = NULL,
                                      exclude_iso3cs = "CHN")
-df_overall_good <- loadCounterfactualData(c("No Vaccines"),
-                                     group_by = NULL,
-                                     exclude_iso3cs = c(bad_fits, "CHN"))
+# df_overall_good <- loadCounterfactualData(c("No Vaccines"),
+#                                      group_by = NULL,
+#                                      exclude_iso3cs = c(bad_fits, "CHN"))
 df_income <- loadCounterfactualData(c("No Vaccines"),
                                            group_by = "income_group",
                                     exclude_iso3cs = "CHN")
-df_income_good <- loadCounterfactualData(c("No Vaccines"),
-                                    group_by = "income_group",
-                                    exclude_iso3cs = c(bad_fits, "CHN"))
+# df_income_good <- loadCounterfactualData(c("No Vaccines"),
+#                                     group_by = "income_group",
+#                                     exclude_iso3cs = c(bad_fits, "CHN"))
 df_who <- loadCounterfactualData(c("No Vaccines"),
                                         group_by = "who_region",
                                  exclude_iso3cs = "CHN")
-df_who_good <- loadCounterfactualData(c("No Vaccines"),
-                                 group_by = "who_region",
-                                 exclude_iso3cs = c(bad_fits, "CHN"))
+# df_who_good <- loadCounterfactualData(c("No Vaccines"),
+#                                  group_by = "who_region",
+#                                  exclude_iso3cs = c(bad_fits, "CHN"))
 df_ind <- loadCounterfactualData(c("No Vaccines"),
                                  group_by = "iso3c",
                                  exclude_iso3cs = "CHN") %>%
@@ -128,19 +125,19 @@ df <- df_overall %>%
   mutate(
     `Quality of fit(s):` = "-"
   ) %>%
-  rbind(
-    rbind(
-      df_overall_good %>%
-        mutate(` ` = "Worldwide"),
-      df_income_good %>%
-        rename(` ` = income_group),
-      df_who_good %>%
-        rename(` ` = who_region)
-    ) %>%
-      mutate(
-        `Quality of fit(s):` = "Good"
-      )
-  ) %>%
+  # rbind(
+  #   rbind(
+  #     df_overall_good %>%
+  #       mutate(` ` = "Worldwide"),
+  #     df_income_good %>%
+  #       rename(` ` = income_group),
+  #     df_who_good %>%
+  #       rename(` ` = who_region)
+  #   ) %>%
+  #     mutate(
+  #       `Quality of fit(s):` = "Good"
+  #     )
+  # ) %>%
   rbind(
     df_ind %>%
       mutate(`Quality of fit(s):` = if_else(

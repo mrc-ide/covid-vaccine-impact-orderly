@@ -7,9 +7,13 @@ iso3cs <- readRDS(
   "counterfactuals.Rds"
 ) %>% pull(iso3c) %>% unique()
 fig1_df_overall <- loadCounterfactualData(c("No Vaccines", "Baseline-Direct"),
-                                          group_by = "date")
+                                          group_by = "date",
+                                          exclude_iso3cs = "CHN"
+                                          )
 fig1_df_income <- loadCounterfactualData("No Vaccines",
-                                         group_by = c("income_group", "date"))
+                                         group_by = c("income_group", "date")
+                                         ,
+                                         exclude_iso3cs = "CHN")
 fig1_df_owid <- readRDS(
   "owid.Rds"
 ) %>%
