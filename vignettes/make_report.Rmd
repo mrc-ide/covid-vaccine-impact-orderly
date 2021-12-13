@@ -17,7 +17,7 @@ knitr::opts_knit$set(root.dir = here::here())
 ## Parameter Choices
 
 ```{r, echo=TRUE, eval=FALSE}
-date <- "2021-11-13"
+date <- "2021-11-16"
 ```
 
 Here we set up our parameters to run the report. Whilst `date` is the only one we 
@@ -34,12 +34,20 @@ relevant fits/simulations etc.
 repo <- "C:\\Users\\gbarnsle\\Documents\\Covid Vaccine Impact\\global-lmic-reports-orderly"
 #are the fits present on this system
 fits_present <- TRUE
+#should we just take them from onedrive
+one_drive <- TRUE
+#location?
+one_drive_loc <- file.path(
+  "C:\\Users\\gbarnsle\\OneDrive - Imperial College London\\nimue_model_fits"
+)
 if(fits_present){
   fetch_fit_id <- orderly::orderly_run("fetch_fits",
                                      parameters = list(
                                        date = date,
                                        excess = TRUE,
-                                       repo = repo
+                                       repo = repo,
+                                       one_drive = one_drive,
+                                       one_drive_loc = one_drive_loc
                                      ), echo = FALSE)
   orderly::orderly_commit(fetch_fit_id)
 } else {
@@ -85,7 +93,7 @@ run_simulations_id <- orderly::orderly_run("run_simulations",
                                              date = date,
                                              seed = 100100,
                                              excess = TRUE,
-                                             draws = 2
+                                             draws = 50
                                            ), echo = FALSE)
 orderly::orderly_commit(run_simulations_id)
 ```

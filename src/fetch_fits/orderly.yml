@@ -74,7 +74,12 @@ description: readme.md
 parameters:
   date: ~
   excess: ~
-  repo: ~
+  repo:
+    default: ""
+  one_drive:
+    default: FALSE
+  one_drive_loc:
+    default: ""
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
