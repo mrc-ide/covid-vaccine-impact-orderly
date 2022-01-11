@@ -153,12 +153,12 @@ resources:
 #
 depends:
   run_simulations:
-    id: latest
+    id: latest(parameter:date == date && parameter:adjust_delta == adjust_delta)
     use:
       Baseline.Rds: Baseline.Rds
       No Vaccines.Rds: No Vaccines.Rds
       counterfactuals.Rds: counterfactuals.Rds
   world_map:
-    id: latest
+    id: latest(parameter:date == date)
     use:
       worldsf.Rds: worldsf.Rds

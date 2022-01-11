@@ -146,7 +146,7 @@ sources:
 #
 depends:
   run_simulations:
-    id: latest
+    id: latest(parameter:date == date && parameter:excess == excess)
     use:
       No Vaccines.Rds: No Vaccines.Rds
       Baseline.Rds: Baseline.Rds

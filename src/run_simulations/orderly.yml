@@ -156,10 +156,10 @@ sources:
 #
 depends:
   fetch_fits:
-    id: latest
+    id: latest(parameter:date == date && parameter:excess == excess)
     use:
       countryfits.Rds: countryfits.Rds
   owid:
-    id: latest
+    id: latest(parameter:date == date)
     use:
       owid.rds: owid.Rds

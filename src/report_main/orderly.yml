@@ -74,7 +74,6 @@ artefacts:
 #
 parameters:
   date: ~
-  excess: ~
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -143,14 +142,14 @@ resources:
 #
 depends:
   global_deaths_averted_plot:
-    id: latest
+    id: latest(parameter:date == date && parameter:excess == TRUE)
     use:
       global_deaths_averted.Rds: plots/global_deaths_averted.Rds
   deaths_averted_table:
-    id: latest
+    id: latest(parameter:date == date && parameter:excess == TRUE)
     use:
       averted_table.Rds: averted_table.Rds
   tile_plots:
-    id: latest
+    id: latest(parameter:date == date && parameter:excess == TRUE)
     use:
       tile_plot.Rds: plots/tile_plot.Rds
