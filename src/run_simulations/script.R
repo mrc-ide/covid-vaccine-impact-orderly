@@ -3,8 +3,18 @@ if(!is.na(seed)){
   set.seed(seed)
 }
 
+#set draws
+# if(is.na(draws)){
+#   draws <- NULL
+# }
+draws <- NULL
+
 ## Generate Deaths Averted Data for all countries with nimue fits
-parallel <- TRUE
+if(parallel){
+  future::future(future::multisession())
+} else {
+  future::future(future::sequential())
+}
 
 #which countries do we have
 fits <-  readRDS("countryfits.Rds")
@@ -18,180 +28,206 @@ for(i in seq_along(fits)){
   }
 }
 remove(i)
+remove(fits)
 
+##to calculate COVAX vaccine assignments
+covaxIso3c <- get_covax_iso3c()
+#20% by end of 2021, assume start in 2021 Jan if current coverage less than 20%
+#get current coverages
+covax_data <- lapply(iso3cs, function(iso3c){
+  if(iso3c %in% covaxIso3c){
+    fit <- readRDS(paste0("temp/", iso3c, ".Rds"))
+    eligible_pop <- sum(squire::population$n[squire::population$iso3c == iso3c][tail(fit$parameters$vaccine_coverage_mat, 1)!=0])
+    #check if over 20% full dose coverage
+    #back calculate dose ratio
+    delta_shift_end <- fit$interventions$delta_adjustments$start_date +
+      fit$interventions$delta_adjustments$shift_duration
+    #use delta values to back calculate from final efficacy
+    delta_i_f <-  fit$interventions$delta_adjustments$ve_i_low_d
+    delta_i_s <-  fit$interventions$delta_adjustments$ve_i_high_d
+    delta_d_f <-  fit$interventions$delta_adjustments$ve_d_low_d
+    delta_d_s <-  fit$interventions$delta_adjustments$ve_d_high_d
+    cur_i_f <- delta_i_f
+    cur_i_s <- delta_i_s
+    #note this is hardcoded for now, pending rewrite to $interventions
+    n_delta_i_f <- 0.6
+    n_delta_i_s <- 0.8
+    n_delta_d_f <- 0.8
+    n_delta_d_s <- 0.98
+    if(delta_shift_end > date){
+      #scale values by how far into shift we are
+      prop <- 1-as.numeric(delta_shift_end - as.Date(date))/fit$interventions$delta_adjustments$shift_duration
+      cur_i_f <- n_delta_i_f*(1-prop) + delta_i_f*prop
+      cur_i_s <- n_delta_i_s*(1-prop) + delta_i_s*prop
+    }
+    percentage_second_dose <-
+      (tail(fit$interventions$vaccine_efficacy_infection, 1)[[1]][1] - cur_i_s)/
+      (cur_i_s - cur_i_f)
 
-#get baseline vaccines from nimue data (this doesn't get vaccine info for countries with out fits)
-baseline <- lapply(iso3cs, function(x){
-  country <- fits[[x]]
-  if(is.null(country$interventions)){
-    return(NULL)
+    if(sum(fit$interventions$max_vaccine)*percentage_second_dose/eligible_pop < 0.2){
+      dates <- fit$interventions$date_vaccine_change
+      start_date <- tail(dates, 1)
+      #doesn't meet double dose requirements
+      #just scale up efficacy so it does meet
+      #calculate delta scaling
+      delta_prop <- rep(0, length(dates))
+      delta_prop[dates >= fit$interventions$delta_adjustments$start_date &
+                   dates < delta_shift_end] <-
+        as.numeric(dates[dates >= fit$interventions$delta_adjustments$start_date &
+                           dates < delta_shift_end] - fit$interventions$delta_adjustments$start_date + 1)/
+        fit$interventions$delta_adjustments$shift_duration
+      delta_prop[dates >= delta_shift_end] <- 1
+      #adjust efficacies for delta
+      a_delta_i_f <- n_delta_i_f*(1-delta_prop) + delta_i_f*(delta_prop)
+      a_delta_i_s <- n_delta_i_s*(1-delta_prop) + delta_i_s*(delta_prop)
+      a_delta_d_f <- n_delta_d_f*(1-delta_prop) + delta_d_f*(delta_prop)
+      a_delta_d_s <- n_delta_d_s*(1-delta_prop) + delta_d_s*(delta_prop)
+      #derive dose ratio
+      dose_ratio <- (unlist(lapply(fit$interventions$vaccine_efficacy_infection, function(x){x[1]}))[-1] -
+          a_delta_i_f)/
+        (a_delta_i_s - a_delta_i_f)
+      #get vaccines
+      vaccines <- fit$interventions$max_vaccine
+      if(sum(vaccines)/eligible_pop < 0.2){
+        #first doses too low scale up first_doses
+        vaccines <- vaccines/(sum(vaccines)/eligible_pop/0.2)
+        #second doses to 100%
+        dose_ratio_target <- 1
+      }else{
+        #calculate 2nd dose target
+        dose_ratio_target <- 0.2*eligible_pop/sum(vaccines)
+      }
+      #scale up dose ratio to meet target
+      dose_ratio <- dose_ratio/tail(dose_ratio, 1)*dose_ratio_target
+      #correct if increases above 1
+      dose_ratio <- if_else(dose_ratio > 1, as.double(1), dose_ratio)
+      #calculate new efficacies
+      eff_i <- a_delta_i_f*(1 - dose_ratio) + a_delta_i_s*dose_ratio
+      eff_d <- a_delta_d_f*(1 - dose_ratio) + a_delta_d_s*dose_ratio
+      list(
+        date_vaccine_change = dates,
+        max_vaccine = vaccines,
+        vaccine_efficacy_infection = eff_i,
+        vaccine_efficacy_disease = eff_d
+      )
+    } else {
+      #doesn't need changing
+      NULL
+    }
+  } else{
+    NULL
   }
-  max_vaccine <- country$interventions$max_vaccine[-1]
-  daysAtEachLevel <- as.vector(diff(c(
-    country$interventions$date_vaccine_change,
-    as.Date(date)
-  )))
-  #calculate total
-  data.frame(
-    iso3c = x,
-    `Baseline` = sum(
-      max_vaccine*daysAtEachLevel
-    )
+})
+names(covax_data) <- iso3cs
+#convert to list of lists format
+counterfactuals <- lapply(iso3cs, function(iso3c){
+  list(
+    `No Vaccines` = list(max_vaccine = 0,
+                         date_vaccine_change = as.Date(date) - 1,
+                         vaccine_efficacy_infection = 0,
+                         vaccine_efficacy_disease = 0),
+    `COVAX` = covax_data[[iso3c]]
   )
 })
-remove(fits)
-baseline <- do.call(rbind, baseline)
+names(counterfactuals) <- iso3cs
+#remove uneeded
+rm(covax_data)
 
-#calculate total vaccines
-vaccineCount <- sum(baseline$Baseline)
+#run in parts
+indexes <- seq_along(counterfactuals)
+groups <- split(indexes, ceiling(indexes/50))
 
-##data for the total deaths etc. We will limit these to countries with nimue simulations
-#load OWID data
-owid <- readRDS("owid.Rds") %>%
-  filter(iso3c %in% iso3cs)
+walk(
+  groups,
+  function(group){
+    #generate counter factuals for group
+    deaths_averted_list <- lapply(group, function(country_index){
+      iso3c <- names(counterfactuals)[country_index]
+      message(paste0(country_index, ":", names(counterfactuals)[country_index]))
+      out <- readRDS(paste0("temp/", as.character(iso3c), ".Rds"))
 
-##Note that vaccines not identical to OWID data?:
-ggplot(owid %>% select(iso3c, people_vaccinated) %>%
-         na.omit %>%
-         group_by(iso3c) %>%
-         summarise(m = max(people_vaccinated, na.rm=TRUE)) %>%
-         rename(OWID = m) %>%
-         filter(iso3c %in% iso3cs) %>%
-         full_join(baseline) %>%
-         rename(nimue = Baseline) %>%
-         filter(!is.na(OWID) | nimue != 0) %>%
-         mutate(OWID = if_else(is.na(OWID), 0, OWID),
-                diff = nimue - OWID)) +
-  geom_col(aes(
-    x = iso3c,
-    y = diff
-  ), position = position_dodge())
+      df <- suppressMessages(
+        deaths_averted(out, draws = draws,
+                       counterfactual = counterfactuals[[country_index]],
+                       reduce_age = FALSE,
+                       direct = TRUE)
+      )
 
-
-##to calculate vaccine assignments
-#populations for Equitable-Population
-pops <- squire::population %>%
-  group_by(iso3c) %>%
-  summarise(population = sum(n)) %>%
-  filter(iso3c %in% iso3cs)
-totalPop <- sum(pops$population)
-#create assignment
-popsVaccineAssignment <- pops %>%
-  mutate(`Equitable-Population` = vaccineCount*population/totalPop) %>%
-  select(iso3c, `Equitable-Population`)
-#total number of cases up to end of 2020 for Equitable-Burden
-burden <- owid %>%
-  filter(obsDate <= "2020-12-31") %>%
-  select(iso3c, total_deaths) %>%
-  na.omit %>%
-  group_by(iso3c) %>%
-  summarise(deaths = max(total_deaths, na.rm=TRUE))
-totalDeaths <- sum(burden$deaths)
-burdenVaccineAssignment <- burden %>%
-  mutate(`Equitable-Burden` = vaccineCount*deaths/totalDeaths) %>%
-  select(iso3c, `Equitable-Burden`)
-#COVAX counter-factual
-covaxISO3 <- get_covax_iso3c()
-#20% by end of 2021, assume start in 2021 Jan
-percentageVacc <- as.numeric(0.2*(as.Date(date) - as.Date("2021-01-01"))/365)
-covaxVaccineAssignment <- data.frame(iso3c = iso3cs) %>%
-  left_join(pops) %>%
-  mutate(`COVAX` = if_else(iso3c %in% covaxISO3, population*percentageVacc, as.numeric(NA))) %>%
-  select(iso3c, COVAX)
-#merge into one dataset
-counterfactuals <- data.frame(iso3c = iso3cs) %>%
-  mutate(`No Vaccines` = 0) %>%
-  left_join(popsVaccineAssignment) %>%
-  left_join(burdenVaccineAssignment) %>%
-  mutate(`Equitable-Burden` = if_else(is.na(`Equitable-Burden`), 0, `Equitable-Burden`)) %>%
-  left_join(covaxVaccineAssignment)
-#if there is no deaths data from before 2021 we assign 0 vaccines
-
-#find start dates for the counter factuals
-#for no vaccine we set it to the last date a change in vaccinations occurs to
-vaccineStart <- c(
-  as.character(as.Date(date) - 1),
-  rep(
-    owid %>%
-      filter(!is.na(total_vaccinations) & total_vaccinations != 0) %>%
-      pull(obsDate) %>%
-      min(),
-    2
-  ),
-  "2021-01-01"
+      return(df)
+    })
+    #save each counterfactual seperately in temp files
+    for(thisCounterfactual in
+        c("Baseline", "Baseline-Direct", "Baseline-No Healthcare Surging", names(counterfactuals[[1]]))
+    ){
+      temp_list <- list()
+      for(j in seq_along(deaths_averted_list)){
+        temp_list[[j]] <- filter(deaths_averted_list[[j]],
+                                 .data$counterfactual == thisCounterfactual) %>%
+          ungroup() %>%
+          select(!.data$counterfactual)
+      }
+      saveRDS(
+        do.call(
+          rbind,
+          temp_list),
+        paste0(thisCounterfactual, head(group, 1), ".Rds")
+      )
+    }
+  }
 )
-
-#for now only run baselines + no vaccine
-counterfactuals <- counterfactuals %>%
-  select(iso3c, `No Vaccines`)
-vaccineStart <- vaccineStart[1]
-
-#generate counter factuals for all countries
-deaths_averted_list <- apply(counterfactuals,
-                             1, function(x) {
-                               message(x["iso3c"])
-                               out <- readRDS(paste0("temp/", as.character(x["iso3c"]), ".Rds"))
-
-                               #set up the counter factual labels and the assigned vaccines
-                               assignments <- as.vector(x[-1], mode = "double")
-                               counterfactualNames <- names(counterfactuals)[-1]
-
-                               #remove NA ones e.g. COVAX for UMIC/HIC
-                               counterfactualNames <- counterfactualNames[!is.na(assignments)]
-                               vaccineStart <- vaccineStart[!is.na(assignments)]
-                               assignments <- assignments[!is.na(assignments)]
-
-                               df <- suppressMessages(
-                                 deaths_averted(out, draws = draws,
-                                                parallel = parallel,
-                                                counterfactual = counterfactualNames,
-                                                reduce_age = FALSE,
-                                                assignedVaccine = assignments,
-                                                vaccineStart = vaccineStart,
-                                                direct = TRUE,
-                                                noWarnings = TRUE,
-                                                excess = excess)
-                               )
-                               return(df)
-                             })
 
 #delete temporary folder
 unlink("temp", recursive = TRUE)
 
-#save each counterfactual seperately
-for(thisCounterfactual in
-    c("Baseline", "Baseline-Direct", setdiff(names(counterfactuals), "iso3c"))
-){
-  temp_list <- list()
-  for(j in 1:nrow(counterfactuals)){
-    temp_list[[j]] <- filter(deaths_averted_list[[j]],
-                             .data$counterfactual == thisCounterfactual) %>%
-      ungroup() %>%
-      select(!.data$counterfactual)
+#combine seperate counterfactual files
+walk(
+  c("Baseline", "Baseline-Direct", "Baseline-No Healthcare Surging", names(counterfactuals[[1]])),
+  function(thisCounterfactual){
+    #get names of files
+    temp_files <- paste0(thisCounterfactual, map_dbl(groups, ~head(.x, 1)), ".Rds")
+    #load files and append to one then save
+    saveRDS(
+      do.call(
+        rbind,
+        map(temp_files, ~readRDS(.x))
+      ),
+      paste0(thisCounterfactual, ".Rds")
+    )
+    #remove temp files
+    unlink(temp_files, recursive = TRUE)
   }
-  saveRDS(
-    do.call(
-      rbind,
-      temp_list),
-    paste0(thisCounterfactual, ".Rds")
-  )
-}
+)
+
 
 ##vaccines given out per country
-baseline <- baseline %>%
-  left_join(
-    owid %>%
-      group_by(iso3c) %>%
-      summarise(
-        `Baseline (Total Vaccines)` = max(total_vaccinations, na.rm = T)
-      )
-  ) %>%
-  mutate(`Baseline (Total Vaccines)` = if_else(
-    is.infinite(`Baseline (Total Vaccines)`),
-    0,
-    `Baseline (Total Vaccines)`
-  ))
 saveRDS(
-  left_join(counterfactuals, baseline),
+  readRDS("owid.Rds") %>%
+    filter(iso3c %in% iso3cs) %>%
+    group_by(iso3c) %>%
+    summarise(
+      `Baseline (Total Vaccines)` = max(total_vaccinations, na.rm = T)
+    ) %>%
+    mutate(`Baseline (Total Vaccines)` = if_else(
+      is.infinite(`Baseline (Total Vaccines)`),
+      0,
+      `Baseline (Total Vaccines)`
+    )) %>%
+    left_join(
+      map_df(
+        seq_along(counterfactuals),
+        function(counter_index){
+          map_dbl(counterfactuals[[counter_index]],
+                  function(counterfactual){
+                    if(is.null(counterfactual)){
+                      as.double(NA)
+                    } else {
+                      sum(counterfactual$max_vaccine)
+                    }
+                  })
+
+        }
+      ) %>%
+        mutate(iso3c = names(counterfactuals))
+    ),
   "counterfactuals.Rds"
 )

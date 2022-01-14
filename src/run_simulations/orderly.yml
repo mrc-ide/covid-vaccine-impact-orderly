@@ -54,8 +54,14 @@ artefacts:
       description: Baseline data simulation with no protection against infection
       filenames: Baseline-Direct.Rds
   - data:
+      description: Baseline data simulation with no deaths from healthcare overflow
+      filenames: Baseline-No Healthcare Surging.Rds
+  - data:
       description: Counterfactual simulation with no vaccines
       filenames: No Vaccines.Rds
+  - data:
+      description: Counterfactual simulation if COVAX was on target
+      filenames: COVAX.Rds
 
 # An optional name to describe the report in more detail than its
 # directory name (which must be short) but less detail than
@@ -85,8 +91,8 @@ parameters:
   seed:
     default: NA
   excess: ~
-  draws:
-    default: 15
+  parallel:
+    default: FALSE
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -106,6 +112,8 @@ packages:
   - countrycode
   - stringr
   - squire.page
+  - future
+  - purrr
 
 
 # Source files, in addition to the script.  Typically these will

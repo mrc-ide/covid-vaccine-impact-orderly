@@ -2,57 +2,19 @@
 #'
 #' @param out Output of `squire::pmcmc`
 #' @param draws Number of draws from mcmc chain. Default = 10
-#' @param parallel Are simulations done in parallel? Default = TRUE
-#' @param counterfactual Which counter-factual to compare to? Default = "No Vaccine",
-#' and can take a vector to indicate more than one. Should not include Baseline
-#' as this is used to store the baseline (not counterfactual data).
+#' @param counterfactual A named list of lists. Each list should contain the
+#' dates that vaccines change, the number of vaccines, and efficacies. If NULL
+#' that counter-factual will be skipped.
 #' @param reduce_age Should the output be aggregated by age? Can be TRUE, FALSE,
 #' or "Both" to return values both with the aggregated in a special age_group "Total"
-#' @param assignedVaccine A vector of the number of vaccines assigned to the
-#' country in each counter factual. If this has length = 1 then this number is
-#' given to all counter factuals.
-#' @param vaccineStart The dates to start the vaccination campaign in each counter
-#' factual. If = NULL then each counter factual is assumed to start when it did
-#' in reality, else use NA in a vector to indicate this. If the country has not
-#' begun this will be the day before the last observation. Dates should be characters
-#' in the format "YYYY-MM-DD". If length=1 this date is given to all counter
-#' factuals. Default = NULL.
-#' @param noWarnings Suppress warnings around just changing the name of a counter
-#' factual. Default  = FALSE.
 #' @param direct Should there be an estimate of direct effect of the vaccine, i.e.
 #' no protection against infection. Default = FALSE.
-#' @param excess Use the excess loglikelihood? Default = FALSE
-deaths_averted <- function(out, draws, parallel, counterfactual = "No Vaccine", reduce_age = TRUE,
-                           assignedVaccine = 0, vaccineStart = NULL,
-                           direct = FALSE, noWarnings = FALSE, excess = FALSE) {
+deaths_averted <- function(out, draws, counterfactual, reduce_age = TRUE,
+                           direct = FALSE) {
   #error if Baseline in counterfactual
-  if(any(c("Baseline","baseline","BASELINE") %in% counterfactual)){
+  if(any(c("Baseline","baseline","BASELINE") %in% names(counterfactual))){
     stop('"Baseline" is a reserved name for a counterfactual, please choose another name')
   }
-  #warnings for incorrect assignments
-  if(!noWarnings & length(counterfactual) == 1){
-    if(assignedVaccine == 0 & counterfactual != "No Vaccine"){
-      warning("No vaccines assigned to country, supress this warning with noWarnings = TRUE")
-    }
-  }
-  #errors to inconsistent dimensions
-  if(length(assignedVaccine) == 1){
-    assignedVaccine <- rep(assignedVaccine, length(counterfactual))
-    #if only one value use for all counter factuals
-  } else if(length(counterfactual) != length(assignedVaccine)){
-    stop("Inconsistent number of counterfactuals and vaccine assignments")
-  }
-  if(!is.null(vaccineStart)){
-    if(length(vaccineStart) == 1){
-      vaccineStart <- rep(vaccineStart, length(counterfactual))
-      #if only one date use for all counter factuals
-    } else if(length(vaccineStart) != length(counterfactual)){
-      stop("Inconsistent number of counterfactuals and vaccine start dates")
-    }
-  } else{
-    vaccineStart <- rep(NA, length(counterfactual))
-  }
-
 
   # return NULL if nothing
   if(!("pmcmc_results" %in% names(out))) {
@@ -61,21 +23,24 @@ deaths_averted <- function(out, draws, parallel, counterfactual = "No Vaccine", 
 
   # get the real data
   data <- out$pmcmc_results$inputs$data
-  if("week_start" %in% names(data)){
-    data$date <- data$week_start
-    out$pmcmc_results$inputs$data$date <- out$pmcmc_results$inputs$data$week_start
-  }
   country <- out$parameters$country
   iso3c <- squire::population$iso3c[squire::population$country == country][1]
-
+  if(is.null(data$week_end)){
+    date_0 <- date_0
+  } else {
+    date_0 <- max(data$week_end)
+  }
   #draw the parameters
-  pars.list <- generate_parameters(out, draws)
+  if(is.null(draws)){
+    pars.list <- NULL
+  } else {
+    pars.list <- squire.page::generate_parameters(out, draws)
+  }
 
   #Set up the baseline results
-  #need to draw this since we need infections (+ maybe age-disaggregated)
-  baseline <- generate_draws(out, pars.list, draws, parallel, excess = excess)
+  baseline <- squire.page::generate_draws(out, pars.list, draws)
   # format the counter factual run
-  baseline_deaths <- nimue_format(baseline, c("deaths", "infections"), date_0 = max(data$date),
+  baseline_deaths <- nimue_format(baseline, c("deaths", "infections"), date_0 = date_0,
                                   reduce_age = reduce_age) %>%
     dplyr::distinct() %>%
     tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
@@ -92,9 +57,10 @@ deaths_averted <- function(out, draws, parallel, counterfactual = "No Vaccine", 
 
   #if needed generate the direct effect results
   if(direct){
-    baseline_direct <- generate_draws(out, pars.list, draws, parallel, noInfectionProtect = TRUE, excess = excess)
+    #indirect protection
+    baseline_direct <- squire.page::generate_draws(remove_indirect(out), pars.list, draws)
     # format the counter factual run
-    baseline_direct_deaths <- nimue_format(baseline_direct, c("deaths", "infections"), date_0 = max(data$date),
+    baseline_direct_deaths <- nimue_format(baseline_direct, c("deaths", "infections"), date_0 = date_0,
                                            reduce_age = reduce_age) %>%
       dplyr::distinct() %>%
       tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
@@ -111,6 +77,26 @@ deaths_averted <- function(out, draws, parallel, counterfactual = "No Vaccine", 
       baseline_deaths,
       baseline_direct_deaths
     )
+    #healthcare
+    baseline_healthcare <- squire.page::generate_draws(remove_healthcare(out), pars.list, draws)
+    # format the counter factual run
+    baseline_healthcare_deaths <- nimue_format(baseline_healthcare, c("deaths", "infections"), date_0 = date_0,
+                                           reduce_age = reduce_age) %>%
+      dplyr::distinct() %>%
+      tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
+      na.omit() %>%
+      dplyr::mutate(counterfactual = "Baseline-No Healthcare Surging")
+
+    if(!reduce_age){
+      baseline_healthcare_deaths <- dplyr::mutate(baseline_healthcare_deaths, age_group = as.character(.data$age_group))
+    }
+
+    baseline_healthcare_deaths$t <- NULL
+
+    baseline_deaths <- rbind(
+      baseline_deaths,
+      baseline_healthcare_deaths
+    )
   }
 
   #set up data frame to hold results
@@ -126,29 +112,31 @@ deaths_averted <- function(out, draws, parallel, counterfactual = "No Vaccine", 
   #run the counter-factual
   for(counterIndex in seq_along(counterfactual)){
     #generate draws with pars.list
-    counter <- generate_draws_counterfactual(out = out, pars.list = pars.list,
-                                             assignedVaccine = assignedVaccine[counterIndex],
-                                             vaccineStart = vaccineStart[counterIndex],
-                                             draws = draws, parallel = parallel,
-                                             excess = excess
-    )
-    #format the counter factual run
-    counter_df <- nimue_format(counter, c("deaths", "infections"),
-                               date_0 = max(data$date),
-                               reduce_age = reduce_age) %>%
-      dplyr::distinct() %>%
-      tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
-      na.omit() %>%
-      dplyr::mutate(counterfactual = counterfactual[counterIndex])
+    if(!is.null(counterfactual[[counterIndex]])){
+      counter <- squire.page::generate_draws(out = update_counterfactual(out, counterfactual[counterIndex]),
+                                             pars.list = pars.list, draws = draws)
+      #format the counter factual run
+      counter_df <- nimue_format(counter, c("deaths", "infections"),
+                                 date_0 = date_0,
+                                 reduce_age = reduce_age) %>%
+        dplyr::distinct() %>%
+        tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
+        na.omit() %>%
+        dplyr::mutate(counterfactual = names(counterfactual)[counterIndex])
 
-    if(!reduce_age){
-      counter_df <- dplyr::mutate(counter_df, age_group = as.character(.data$age_group))
+      if(!reduce_age){
+        counter_df <- dplyr::mutate(counter_df, age_group = as.character(.data$age_group))
+      }
+      counter_df$t <- NULL
+
+      #attach to counter-factual data frame
+      deaths_df[seq(dataframeLength) + dataframeLength*(counterIndex-1),] <- counter_df
     }
-    counter_df$t <- NULL
-
-    #attach to counter-factual data frame
-    deaths_df[seq(dataframeLength) + dataframeLength*(counterIndex-1),] <- counter_df
   }
+
+  #remove unused row (i.e. if a counter factual is null)
+  deaths_df <- deaths_df %>%
+    filter(!is.na(counterfactual))
 
   #add baseline data
   deaths_df <- rbind(
@@ -189,4 +177,102 @@ deaths_averted <- function(out, draws, parallel, counterfactual = "No Vaccine", 
   deaths_df$country <- country
   deaths_df$iso3c <- iso3c
   return(deaths_df)
+}
+remove_indirect <- function(out){
+    out$odin_parameters$vaccine_efficacy_infection <- matrix(0.5,
+                                                             nrow = nrow(out$odin_parameters$vaccine_efficacy_infection),
+                                                             ncol = ncol(out$odin_parameters$vaccine_efficacy_infection))
+    #scale up protection against disease to keep the same efficacy
+    if(any(out$interventions$date_vaccine_efficacy_infection_change != out$interventions$date_vaccine_efficacy_disease_change)){
+      "Different efficacy change times against disease and infection"
+    }
+    trueEff <-
+      Map("+",
+          out$interventions$vaccine_efficacy_infection,
+          Map("*",
+              Map("-", 1, out$interventions$vaccine_efficacy_infection),
+              out$interventions$vaccine_efficacy_disease
+          )
+      )
+    out$parameters$vaccine_efficacy_disease <- trueEff
+    out$interventions$vaccine_efficacy_disease <- trueEff
+    out$pmcmc_results$inputs$interventions$vaccine_efficacy_disease <- trueEff
+
+    #set infection efficacy in interventions
+    out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection <- lapply(
+      out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection, function(x) {
+        rep(0,17)
+      })
+    out$interventions$vaccine_efficacy_infection <- lapply(
+      out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection, function(x) {
+        rep(0,17)
+      })
+    # the calc_loglikelihood function samples from the model_params for vaccine pars rather than recalculating
+    # so we need to update this here
+    out$pmcmc_results$inputs$model_params$vaccine_efficacy_infection <- nimue:::format_ve_i_for_odin(
+      vaccine_efficacy_infection = out$interventions$vaccine_efficacy_infection,
+      tt_vaccine_efficacy_infection = out$pmcmc_results$inputs$model_params$tt_vaccine_efficacy_infection
+    )
+
+    out$pmcmc_results$inputs$model_params$prob_hosp <- nimue:::format_ve_d_for_odin(
+      vaccine_efficacy_disease = trueEff,
+      tt_vaccine_efficacy_disease = out$pmcmc_results$inputs$model_params$tt_vaccine_efficacy_disease,
+      prob_hosp = nimue:::probs$prob_hosp)
+
+    #set relative infectiousness to 1
+    out$pmcmc_results$inputs$model_params$rel_infectiousness_vaccinated <-
+      matrix(1,
+             nrow = nrow(out$pmcmc_results$inputs$model_params$rel_infectiousness_vaccinated),
+             ncol = ncol(out$pmcmc_results$inputs$model_params$rel_infectiousness_vaccinated)
+      )
+    out$odin_parameters$rel_infectiousness_vaccinated <-
+      matrix(1,
+             nrow = nrow(out$odin_parameters$rel_infectiousness_vaccinated),
+             ncol = ncol(out$odin_parameters$rel_infectiousness_vaccinated)
+      )
+    out$parameters$rel_infectiousness_vaccinated <-
+      rep(1, length(out$parameters$rel_infectiousness_vaccinated))
+    return(out)
+}
+remove_healthcare <- function(out){
+  out$parameters$hosp_bed_capacity <- 10^7
+  out$parameters$ICU_bed_capacity <- 10^7
+  out$odin_parameters$hosp_beds <- 10^7
+  out$odin_parameters$ICU_beds <- 10^7
+  out$interventions$hosp_bed_capacity <- 10^7
+  out$interventions$ICU_bed_capacity <- 10^7
+  out$pmcmc_results$inputs$model_params$hosp_beds <- 10^7
+  out$pmcmc_results$inputs$model_params$ICU_beds <- 10^7
+  out$pmcmc_results$inputs$interventions$hosp_bed_capacity <- 10^7
+  out$pmcmc_results$inputs$interventions$ICU_bed_capacity <- 10^7
+  return(out)
+}
+update_counterfactual <- function(out, counterfactual){
+  out$pmcmc_results$inputs$interventions$date_vaccine_change <-
+    counterfactual$date_vaccine_change
+  out$pmcmc_results$inputs$interventions$date_vaccine_efficacy_disease_change <-
+    counterfactual$date_vaccine_change
+  out$pmcmc_results$inputs$interventions$date_vaccine_efficacy_infection_change <-
+    counterfactual$date_vaccine_change
+  out$pmcmc_results$inputs$interventions$max_vaccine <-
+    counterfactual$max_vaccine
+  out$pmcmc_results$inputs$interventions$vaccine_efficacy_disease <-
+    lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)})
+  out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection <-
+    lapply(counterfactual$vaccine_efficacy_infection, function(x){rep(x, 17)})
+
+  out$interventions$date_vaccine_change <-
+    counterfactual$date_vaccine_change
+  out$interventions$date_vaccine_efficacy_disease_change <-
+    counterfactual$date_vaccine_change
+  out$interventions$date_vaccine_efficacy_infection_change <-
+    counterfactual$date_vaccine_change
+  out$interventions$max_vaccine <-
+    counterfactual$max_vaccine
+  out$interventions$vaccine_efficacy_disease <-
+    lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)})
+  out$interventions$vaccine_efficacy_infection <-
+    lapply(counterfactual$vaccine_efficacy_infection, function(x){rep(x, 17)})
+
+  return(out)
 }
