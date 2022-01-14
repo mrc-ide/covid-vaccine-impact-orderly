@@ -17,7 +17,7 @@ knitr::opts_knit$set(root.dir = here::here())
 ## Parameter Choices
 
 ```{r, echo=TRUE, eval=FALSE}
-date <- "2021-11-16"
+date <- "2021-12-05"
 ```
 
 Here we set up our parameters to run the report. Whilst `date` is the only one we 
@@ -93,8 +93,9 @@ run_simulations_id <- orderly::orderly_run("run_simulations",
                                              date = date,
                                              seed = 100100,
                                              excess = TRUE,
-                                             draws = 50
+                                             parallel = FALSE
                                            ), echo = FALSE)
+#run_simulations_id <- "20220113-151542-c092047c"
 orderly::orderly_commit(run_simulations_id)
 ```
 
@@ -134,6 +135,14 @@ deaths_averted_table_id <- orderly::orderly_run("deaths_averted_table",
                                              seed = 1001000011
                                            ), echo = FALSE)
 orderly::orderly_commit(deaths_averted_table_id)
+
+covax_deaths_averted_id <- orderly::orderly_run("covax_deaths_averted",
+                                           parameters = list(
+                                             date = date,
+                                             excess = TRUE,
+                                             seed = 100123511
+                                           ), echo = FALSE)
+orderly::orderly_commit(covax_deaths_averted_id)
 ```
 
 This generates a Rds of a table of the counter factual deaths averted.
@@ -170,40 +179,34 @@ orderly::orderly_commit(tile_plots_id)
 These tasks all generate *ggplot* objects so that they are easier to modify when
 producing the report.
 
-## Compile Main Body of Report
+## Generate Fitting Plots
 
 ```{r, echo=TRUE, eval=FALSE}
-orderly::orderly_develop_start("report_main",
-                                           parameters = list(
-                                             date = date,
-                                             excess = TRUE
-                                           ))
-orderly::orderly_develop_clean("report_main")
-
-
-report_main_id <- orderly::orderly_run("report_main",
+fitting_plots_id <- orderly::orderly_run("fitting_plots",
                                            parameters = list(
                                              date = date,
                                              excess = TRUE
                                            ), echo = FALSE)
-orderly::orderly_commit(report_main_id)
+orderly::orderly_commit(fitting_plots_id)
 ```
 
-## Compile Appenix A
+Generates plots of each fit to go into the appendix, utilises the country fits
+not the simulation results
+
+## Delta Adjustment Toy Model
 
 ```{r, echo=TRUE, eval=FALSE}
-orderly::orderly_develop_start("report_appendix_a",
-                                           parameters = list(
-                                             date = date,
-                                             excess = TRUE
-                                           ))
-orderly::orderly_develop_clean("report_appendix_a")
 
-
-report_appendix_a_id <- orderly::orderly_run("report_appendix_a",
-                                           parameters = list(
-                                             date = date,
-                                             excess = TRUE
-                                           ), echo = FALSE)
-orderly::orderly_commit(report_appendix_a_id)
 ```
+
+Produce model fits for some simulated data to explore the relationship between
+immune escape and deaths averted.
+
+## Compile Plots to Images
+
+```{r, echo=TRUE, eval=FALSE}
+
+```
+
+Originally a report this now just puts the plots into pngs. All in one task so
+that it is simple to modify dimensions etc.
