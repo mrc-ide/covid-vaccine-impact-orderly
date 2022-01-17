@@ -113,7 +113,7 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = TRUE,
   for(counterIndex in seq_along(counterfactual)){
     #generate draws with pars.list
     if(!is.null(counterfactual[[counterIndex]])){
-      counter <- squire.page::generate_draws(out = update_counterfactual(out, counterfactual[counterIndex]),
+      counter <- squire.page::generate_draws(out = update_counterfactual(out, counterfactual[[counterIndex]]),
                                              pars.list = pars.list, draws = draws)
       #format the counter factual run
       counter_df <- nimue_format(counter, c("deaths", "infections"),
@@ -260,6 +260,20 @@ update_counterfactual <- function(out, counterfactual){
     lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)})
   out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection <-
     lapply(counterfactual$vaccine_efficacy_infection, function(x){rep(x, 17)})
+
+  out$pmcmc_results$inputs$model_params$vaccine_efficacy_infection <- nimue:::format_ve_i_for_odin(
+    vaccine_efficacy_infection = lapply(counterfactual$vaccine_efficacy_infection, function(x){rep(x, 17)}),
+    tt_vaccine_efficacy_infection = c(0, seq_along(counterfactual$date_vaccine_change))
+  )
+  out$pmcmc_results$inputs$model_params$tt_vaccine_efficacy_infection <- c(0, seq_along(counterfactual$date_vaccine_change))
+
+  out$pmcmc_results$inputs$model_params$prob_hosp <- nimue:::format_ve_d_for_odin(
+    vaccine_efficacy_disease = lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)}),
+    tt_vaccine_efficacy_disease =  c(0, seq_along(counterfactual$date_vaccine_change)),
+    prob_hosp = out$parameters$prob_hosp
+  )
+  out$pmcmc_results$inputs$model_params$tt_vaccine_efficacy_disease <- c(0, seq_along(counterfactual$date_vaccine_change))
+  #don't need to update the max vaccine as it uses intervention data
 
   out$interventions$date_vaccine_change <-
     counterfactual$date_vaccine_change

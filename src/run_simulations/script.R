@@ -54,22 +54,74 @@ covax_data <- lapply(iso3cs, function(iso3c){
     n_delta_i_s <- 0.8
     n_delta_d_f <- 0.8
     n_delta_d_s <- 0.98
-    if(delta_shift_end > date){
-      #scale values by how far into shift we are
-      prop <- 1-as.numeric(delta_shift_end - as.Date(date))/fit$interventions$delta_adjustments$shift_duration
-      cur_i_f <- n_delta_i_f*(1-prop) + delta_i_f*prop
-      cur_i_s <- n_delta_i_s*(1-prop) + delta_i_s*prop
-    }
-    percentage_second_dose <-
-      (tail(fit$interventions$vaccine_efficacy_infection, 1)[[1]][1] - cur_i_s)/
-      (cur_i_s - cur_i_f)
+    if(any(fit$interventions$max_vaccine > 0)){
+      if(delta_shift_end > date){
+        #scale values by how far into shift we are
+        prop <- 1-as.numeric(delta_shift_end - as.Date(date))/fit$interventions$delta_adjustments$shift_duration
+        cur_i_f <- n_delta_i_f*(1-prop) + delta_i_f*prop
+        cur_i_s <- n_delta_i_s*(1-prop) + delta_i_s*prop
+      }
+      percentage_second_dose <-
+        (tail(fit$interventions$vaccine_efficacy_infection, 1)[[1]][1] - cur_i_f)/
+        (cur_i_s - cur_i_f)
 
-    if(sum(fit$interventions$max_vaccine)*percentage_second_dose/eligible_pop < 0.2){
-      dates <- fit$interventions$date_vaccine_change
-      start_date <- tail(dates, 1)
-      #doesn't meet double dose requirements
-      #just scale up efficacy so it does meet
-      #calculate delta scaling
+      if(sum(fit$interventions$max_vaccine)*percentage_second_dose/eligible_pop < 0.2){
+        dates <- fit$interventions$date_vaccine_change
+        start_date <- tail(dates, 1)
+        #doesn't meet double dose requirements
+        #just scale up efficacy so it does meet
+        #calculate delta scaling
+        delta_prop <- rep(0, length(dates))
+        delta_prop[dates >= fit$interventions$delta_adjustments$start_date &
+                     dates < delta_shift_end] <-
+          as.numeric(dates[dates >= fit$interventions$delta_adjustments$start_date &
+                             dates < delta_shift_end] - fit$interventions$delta_adjustments$start_date + 1)/
+          fit$interventions$delta_adjustments$shift_duration
+        delta_prop[dates >= delta_shift_end] <- 1
+        #add the initial value too, doesn't matter what it is since its before any vaccines are given
+        delta_prop <- c(0, delta_prop)
+        #adjust efficacies for delta
+        a_delta_i_f <- n_delta_i_f*(1-delta_prop) + delta_i_f*(delta_prop)
+        a_delta_i_s <- n_delta_i_s*(1-delta_prop) + delta_i_s*(delta_prop)
+        a_delta_d_f <- n_delta_d_f*(1-delta_prop) + delta_d_f*(delta_prop)
+        a_delta_d_s <- n_delta_d_s*(1-delta_prop) + delta_d_s*(delta_prop)
+        #derive dose ratio
+        dose_ratio <- (unlist(lapply(fit$interventions$vaccine_efficacy_infection, function(x){x[1]})) -
+                         a_delta_i_f)/
+          (a_delta_i_s - a_delta_i_f)
+        #get vaccines
+        vaccines <- fit$interventions$max_vaccine
+        if(sum(vaccines)/eligible_pop < 0.2){
+          #first doses too low scale up first_doses
+          vaccines <- vaccines/(sum(vaccines)/eligible_pop/0.2)
+          #second doses to 100%
+          dose_ratio_target <- 1
+        }else{
+          #calculate 2nd dose target
+          dose_ratio_target <- 0.2*eligible_pop/sum(vaccines)
+        }
+        #scale up dose ratio to meet target
+        dose_ratio <- dose_ratio/tail(dose_ratio, 1)*dose_ratio_target
+        #correct if increases above 1
+        dose_ratio <- if_else(dose_ratio > 1, as.double(1), dose_ratio)
+        #calculate new efficacies
+        eff_i <- a_delta_i_f*(1 - dose_ratio) + a_delta_i_s*dose_ratio
+        eff_d <- a_delta_d_f*(1 - dose_ratio) + a_delta_d_s*dose_ratio
+        list(
+          date_vaccine_change = dates,
+          max_vaccine = vaccines,
+          vaccine_efficacy_infection = eff_i,
+          vaccine_efficacy_disease = eff_d
+        )
+      } else {
+        #doesn't need changing
+        NULL
+      }
+    } else {
+      #if country doesn't have any vaccines yet, we assume they start mid 2021
+      start_date <- as.Date("2021-06-01")
+      dates <- seq(start_date, as.Date(date), 1)
+      #calculate delta adjustments
       delta_prop <- rep(0, length(dates))
       delta_prop[dates >= fit$interventions$delta_adjustments$start_date &
                    dates < delta_shift_end] <-
@@ -77,42 +129,29 @@ covax_data <- lapply(iso3cs, function(iso3c){
                            dates < delta_shift_end] - fit$interventions$delta_adjustments$start_date + 1)/
         fit$interventions$delta_adjustments$shift_duration
       delta_prop[dates >= delta_shift_end] <- 1
-      #adjust efficacies for delta
-      a_delta_i_f <- n_delta_i_f*(1-delta_prop) + delta_i_f*(delta_prop)
-      a_delta_i_s <- n_delta_i_s*(1-delta_prop) + delta_i_s*(delta_prop)
-      a_delta_d_f <- n_delta_d_f*(1-delta_prop) + delta_d_f*(delta_prop)
-      a_delta_d_s <- n_delta_d_s*(1-delta_prop) + delta_d_s*(delta_prop)
-      #derive dose ratio
-      dose_ratio <- (unlist(lapply(fit$interventions$vaccine_efficacy_infection, function(x){x[1]}))[-1] -
-          a_delta_i_f)/
-        (a_delta_i_s - a_delta_i_f)
-      #get vaccines
-      vaccines <- fit$interventions$max_vaccine
-      if(sum(vaccines)/eligible_pop < 0.2){
-        #first doses too low scale up first_doses
-        vaccines <- vaccines/(sum(vaccines)/eligible_pop/0.2)
-        #second doses to 100%
-        dose_ratio_target <- 1
-      }else{
-        #calculate 2nd dose target
-        dose_ratio_target <- 0.2*eligible_pop/sum(vaccines)
-      }
-      #scale up dose ratio to meet target
-      dose_ratio <- dose_ratio/tail(dose_ratio, 1)*dose_ratio_target
-      #correct if increases above 1
-      dose_ratio <- if_else(dose_ratio > 1, as.double(1), dose_ratio)
-      #calculate new efficacies
-      eff_i <- a_delta_i_f*(1 - dose_ratio) + a_delta_i_s*dose_ratio
-      eff_d <- a_delta_d_f*(1 - dose_ratio) + a_delta_d_s*dose_ratio
+      #add the initial value too, doesn't matter what it is since its before any vaccines are given
+      delta_prop <- c(0, delta_prop)
+      #calculate dose ratio changes
+      first_dose_only_period <- 18
+      build_up <- 21
+      dose_ratio <- c(rep(0, first_dose_only_period),
+                      seq(0, 1, length.out = build_up + 1)[-1],
+                      rep(1, length(delta_prop) - first_dose_only_period - build_up))
+      #calculate efficacies
+      eff_i <- (n_delta_i_f * (1 - dose_ratio) + n_delta_i_s * dose_ratio) * (1 - delta_prop) +
+        (delta_i_f * (1 - dose_ratio) + delta_i_s * dose_ratio) * delta_prop
+      eff_d <- (n_delta_d_f * (1 - dose_ratio) + n_delta_d_s * dose_ratio) * (1 - delta_prop) +
+        (delta_d_f * (1 - dose_ratio) + delta_d_s * dose_ratio) * delta_prop
+      #caclulate first doses
+      v_r_b <- eligible_pop*0.2/(sum(1:build_up) + build_up*(length(dates)-build_up))
+      v_r_pb <- build_up*v_r_b
+      first_doses <- c(0, v_r_b*seq(1, build_up), rep(v_r_pb, length(dates)-build_up))
       list(
         date_vaccine_change = dates,
-        max_vaccine = vaccines,
+        max_vaccine = first_doses,
         vaccine_efficacy_infection = eff_i,
         vaccine_efficacy_disease = eff_d
       )
-    } else {
-      #doesn't need changing
-      NULL
     }
   } else{
     NULL
@@ -122,10 +161,10 @@ names(covax_data) <- iso3cs
 #convert to list of lists format
 counterfactuals <- lapply(iso3cs, function(iso3c){
   list(
-    `No Vaccines` = list(max_vaccine = 0,
+    `No Vaccines` = list(max_vaccine = c(0,0),
                          date_vaccine_change = as.Date(date) - 1,
-                         vaccine_efficacy_infection = 0,
-                         vaccine_efficacy_disease = 0),
+                         vaccine_efficacy_infection = c(0,0),
+                         vaccine_efficacy_disease = c(0,0)),
     `COVAX` = covax_data[[iso3c]]
   )
 })
