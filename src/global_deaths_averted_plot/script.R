@@ -2,43 +2,65 @@ if(!is.na(seed)){
   set.seed(seed)
 }
 
+exclude_iso3cs <- c("CHN", "IRQ", "SYR", "YEM")
+
 ###Load data:
 iso3cs <- readRDS(
   "counterfactuals.Rds"
-) %>% pull(iso3c) %>% unique()
+) %>% pull(iso3c) %>% unique() %>% setdiff(exclude_iso3cs)
 fig1_df_overall <- loadCounterfactualData(c("No Vaccines", "Baseline-Direct"),
                                           group_by = "date",
-                                          exclude_iso3cs = "CHN"
+                                          exclude_iso3cs = exclude_iso3cs
                                           )
 fig1_df_income <- loadCounterfactualData("No Vaccines",
                                          group_by = c("income_group", "date")
                                          ,
-                                         exclude_iso3cs = "CHN")
-fig1_df_owid <- readRDS(
-  "owid.Rds"
-) %>%
-  group_by(obsDate) %>%
-  filter(iso3c %in% iso3cs) %>%
-  summarise(
-    total_deaths = sum(total_deaths, na.rm = T)
+                                         exclude_iso3cs = exclude_iso3cs)
+if(excess){
+  #need to extract data from model fits
+  fits <- readRDS("countryfits.Rds")
+  #for each iso3c
+  fig1_df_data <- map_dfr(iso3cs, function(iso3c){
+    fits[[iso3c]]$pmcmc_results$inputs$data
+  }) %>%
+    mutate(
+      week_length = as.numeric(week_end - week_start),
+      obsDate = week_end,
+      deaths = deaths/week_length) %>%
+    group_by(obsDate) %>%
+    summarise(deaths = sum(deaths))
+  #ensure there is a week between dates
+  if(any(as.numeric(diff(fig1_df_data$obsDate)) != 7)){
+    warning("In excess data so weeks are inconsistenly spaced.")
+  }
+  rm(fits)
+} else {
+  fig1_df_data <- readRDS(
+    "owid.Rds"
   ) %>%
-  mutate(deaths = total_deaths - lag(total_deaths, default = total_deaths[1]),
-         obsDate = as.Date(obsDate))
+    group_by(obsDate) %>%
+    filter(iso3c %in% iso3cs) %>%
+    summarise(
+      total_deaths = sum(total_deaths, na.rm = T)
+    ) %>%
+    mutate(deaths = total_deaths - lag(total_deaths, default = total_deaths[1]),
+           obsDate = as.Date(obsDate))
+}
 
 ###Figure 1 daily deaths over time:
-baseline_col <- "olivedrab3"
-novacc_col <- "firebrick1"
-averted_col <- "deepskyblue3"
-direct_col <- "yellow"
+baseline_col <- "black"#"olivedrab3"
+novacc_col <- "#d62728"#"firebrick1"
+averted_col <- "#17becf"#"deepskyblue3"
+direct_col <- "#98df8a"#"yellow"
 data_col <- "grey"
 fig1_1 <- ggplot(fig1_df_overall %>%
                    filter(date > "2021-01-1",
                           counterfactual == "No Vaccines")) +
-  geom_col(data = fig1_df_owid %>%
+  geom_col(data = fig1_df_data %>%
              filter(obsDate > "2021-01-1"),
            aes(x = obsDate, y = deaths, fill = data_col),
-           alpha = 0.5,
-           width = 1,
+           alpha = 0.75,
+           #width = 7,
            colour = "white") +
   geom_ribbon(aes(x = date,
                   ymax = deaths_avg,
@@ -65,8 +87,7 @@ fig1_1 <- ggplot(fig1_df_overall %>%
   expand_limits(y = 0) +
   labs(
     x = "Date",
-    y = "Daily Deaths",
-    title = paste0("Worldwide deaths with/without vaccines,\nup to ", date)
+    y = "Daily Deaths"
   ) +
   scale_color_identity(name = "Legend:",
                        breaks = c(baseline_col,
@@ -74,11 +95,13 @@ fig1_1 <- ggplot(fig1_df_overall %>%
                                   averted_col,
                                   data_col,
                                   direct_col),
-                       labels = c("Model fit", "Counter-factual:\nNo Vaccine", "Deaths Averted(Direct)", "Our World\nin Data",
+                       labels = c("Model fit", "Counter-factual:\nNo Vaccine", "Deaths Averted\n(Direct)", if_else(excess,
+                                                                                                                 "Excess Mortality\nEstimates",
+                                                                                                                 "Our World\nin Data"),
                                   "Deaths Averted\n(Indirect)"),
                        guide = "legend",
                        aesthetics = c("colour", "fill")) +
-  theme_pubclean() +
+  theme_pubr() +
   theme(legend.position = c(0.25, 0.8))
 
 fig1_2 <- ggplot(data = fig1_df_overall %>%
@@ -99,14 +122,13 @@ fig1_2 <- ggplot(data = fig1_df_overall %>%
   #            fill = averted_col) +
   labs(
     x = "Date",
-    y = NULL,
-    title = paste0("Worldwide deaths averted by vaccines,\nup to ", date),
+    y = "Deaths Averted by Vaccinations per day",
     fill = "Income Group:"
   ) +
   ylim(ggplot_build(fig1_1)$layout$panel_scales_y[[1]]$range$range - c(1,0)) +
-  theme_pubclean() +
+  theme_pubr() +
   theme(legend.position = c(0.25, 0.8))
 
-fig_1 <- plot_grid(fig1_1, fig1_2)
+fig_1 <- ggarrange(fig1_1, fig1_2, labels = "auto")
 dir.create("plots", showWarnings = FALSE)
 saveRDS(fig_1, "plots/global_deaths_averted.Rds")

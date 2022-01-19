@@ -1,8 +1,10 @@
 
 ###Load data:
+exclude_iso3cs <- c("CHN", "IRQ", "SYR", "YEM")
+
 fig2_df <- loadCounterfactualData("No Vaccines",
                                   group_by = "iso3c",
-                                  exclude_iso3cs = "CHN")
+                                  exclude_iso3cs = exclude_iso3cs)
 counterfactuals_df <- readRDS(
   "counterfactuals.Rds"
 )
@@ -99,34 +101,46 @@ fig2_df_extra_data <- fig2_df %>%
   mutate(across(
     #converted to per capita
     is.numeric,
-    ~.x/population
+    ~.x/population*10000
   ))
 
 ###Figure 2 dot plots:
 alpha <- 0.75
 
-fig2_vacc <- ggplot(fig2_df_extra_data) +
+fig2_vacc <- ggplot(fig2_df_extra_data %>%
+                      mutate(label =
+                               log(averted_deaths_avg) <= log(vaccinations)*1 -7.8
+                               ) %>%
+                      filter(vaccinations > 0 & averted_deaths_avg > 0),
+                    aes(x = vaccinations,
+                        y = averted_deaths_avg)) +
   geom_point(
-    aes(x = log(vaccinations),
-        y = log(averted_deaths_avg),
-        colour = income_group),
+    aes(colour = income_group),
     alpha = alpha
   ) +
-  theme_pubclean() +
-  labs(x = "Vaccinations", y = "Median Deaths Averted",
+  #geom_abline(aes(intercept = -7.8, slope = 1)) +
+  geom_text(aes(label = if_else(label,
+                                countrycode::countrycode(iso3c, origin = "iso3c", destination = "country.name"),
+                                NULL)),
+              nudge_y = -0.15,
+            hjust = 0) +
+     theme_pubr() +
+    scale_x_log10() +
+    scale_y_log10() +
+  labs(x = "Vaccinations per 10k", y = "Median Deaths Averted per 10k",
        colour = "Income Group:") +
   theme(legend.key.size = unit(0.5, 'cm'),
         legend.margin = margin())
 
 fig2_pvacc <- ggplot(fig2_df_extra_data) +
   geom_point(
-    aes(x = log(people_vaccinated),
-        y = log(averted_deaths_avg),
+    aes(x = people_vaccinated,
+        y = averted_deaths_avg,
         colour = income_group),
     alpha = alpha
   ) +
-  theme_pubclean() +
-  labs(x = "People with at least one dose", y = "",
+     theme_pubr() +   scale_x_log10() +   scale_y_log10() +
+  labs(x = "People with at least one dose", y = "Median Deaths Averted",
        colour = "Income Group:") +
   theme(legend.position = "none",
         plot.subtitle = element_text(face = "italic", hjust = 0.5)) +
@@ -134,84 +148,82 @@ fig2_pvacc <- ggplot(fig2_df_extra_data) +
 
 fig2_cases_2020 <- ggplot(fig2_df_extra_data) +
   geom_point(
-    aes(x = log(reported_cases_2020),
-        y = log(averted_deaths_avg),
+    aes(x = reported_cases_2020,
+        y = averted_deaths_avg,
         colour = income_group),
     alpha = alpha
   ) +
-  theme_pubclean() +
+     theme_pubr() +   scale_x_log10() +   scale_y_log10() +
   labs(x = "Reported Cases(2020)", y = "Median Deaths Averted",
        colour = "Income Group:") +
   theme(legend.position = "none")
 
 fig2_cases_2021 <- ggplot(fig2_df_extra_data) +
   geom_point(
-    aes(x = log(reported_cases_2021),
-        y = log(averted_deaths_avg),
+    aes(x = reported_cases_2021,
+        y = averted_deaths_avg,
         colour = income_group),
     alpha = alpha
   ) +
-  theme_pubclean() +
-  labs(x = "Reported Cases(2021)", y = "",
+     theme_pubr() +   scale_x_log10() +   scale_y_log10() +
+  labs(x = "Reported Cases(2021)", y = "Median Deaths Averted",
        colour = "Income Group:") +
   theme(legend.position = "none")
 
 fig2_deaths_2020 <- ggplot(fig2_df_extra_data) +
   geom_point(
-    aes(x = log(reported_deaths_2020),
-        y = log(averted_deaths_avg),
+    aes(x = reported_deaths_2020,
+        y = averted_deaths_avg,
         colour = income_group),
     alpha = alpha
   ) +
-  theme_pubclean() +
+     theme_pubr() +   scale_x_log10() +   scale_y_log10() +
   labs(x = "Reported deaths(2020)", y = "Median Deaths Averted",
        colour = "Income Group:") +
   theme(legend.position = "none")
 
 fig2_deaths_2021 <- ggplot(fig2_df_extra_data) +
   geom_point(
-    aes(x = log(reported_deaths_2021),
-        y = log(averted_deaths_avg),
+    aes(x = reported_deaths_2021,
+        y = averted_deaths_avg,
         colour = income_group),
     alpha = alpha
   ) +
-  theme_pubclean() +
-  labs(x = "Reported deaths(2021)", y = "",
+     theme_pubr() +   scale_x_log10() +   scale_y_log10() +
+  labs(x = "Reported deaths(2021)", y = "Median Deaths Averted",
        colour = "Income Group:") +
   theme(legend.position = "none")
 
 fig2_dates <- ggplot(fig2_df_extra_data) +
   geom_point(
     aes(x = as.Date(start_date),
-        y = log(averted_deaths_avg),
+        y = averted_deaths_avg,
         colour = income_group),
     alpha = alpha
   ) +
   scale_x_date(date_breaks = "2 months") +
-  theme_pubclean() +
+     theme_pubr() +   scale_y_log10() +
   labs(x = "Date of first reported case", y = "Median Deaths Averted",
        colour = "Income Group:") +
   theme(legend.position = "none")
 
 fig2_tests <- ggplot(fig2_df_extra_data) +
   geom_point(
-    aes(x = log(tests),
-        y = log(averted_deaths_avg),
+    aes(x = tests,
+        y = averted_deaths_avg,
         colour = income_group),
     alpha = alpha
   ) +
-  theme_pubclean() +
-  labs(x = "Tests", y = "",
+     theme_pubr() +   scale_x_log10() +   scale_y_log10() +
+  labs(x = "Tests", y = "Median Deaths Averted",
        colour = "Income Group:") +
   theme(legend.position = "none")
 
-fig2 <- plot_grid(
-  fig2_vacc, fig2_pvacc,
-  fig2_cases_2020, fig2_cases_2021,
-  fig2_deaths_2020, fig2_deaths_2021,
-  fig2_dates, fig2_tests,
-  nrow = 4, ncol = 2,
-  hjust = 1
+fig2 <- list(
+  vacc = fig2_vacc, pvacc = fig2_pvacc,
+  cases_20 = fig2_cases_2020, cases_21 = fig2_cases_2021,
+  deaths_20 = fig2_deaths_2020, deaths_21 = fig2_deaths_2021,
+  dates = fig2_dates, tests = fig2_tests
 )
 
 dir.create("plots")

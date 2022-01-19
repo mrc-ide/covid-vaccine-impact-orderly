@@ -57,6 +57,12 @@ artefacts:
       description: Baseline data simulation with no deaths from healthcare overflow
       filenames: Baseline-No Healthcare Surging.Rds
   - data:
+      description: Baseline data simulation with no deaths from healthcare overflow
+      filenames: Baseline-Direct & No Healthcare Surging.Rds
+  - data:
+      description: Counterfactual simulation with no vaccines and no deaths from healthcare overflow
+      filenames: No Vaccines-No Healthcare Surging.Rds
+  - data:
       description: Counterfactual simulation with no vaccines
       filenames: No Vaccines.Rds
   - data:

@@ -2,25 +2,27 @@ if(!is.na(seed)){
   set.seed(seed)
 }
 
+exclude_iso3cs <- c("CHN", "IRQ", "SYR", "YEM")
+
 ###Load data:
 fig3_df_weekly <- loadCounterfactualData("No Vaccines",
                                          group_by = c("iso3c", "week"),
-                                         exclude_iso3cs = "CHN") %>%
+                                         exclude_iso3cs = exclude_iso3cs) %>%
   filter(week > "2020-12-01")
 
 fig3_df_overall <- loadCounterfactualData("No Vaccines",
                                           group_by = c("iso3c"),
-                                          exclude_iso3cs = "CHN")
+                                          exclude_iso3cs = exclude_iso3cs)
 
 
 fig3_df_income_weekly <- loadCounterfactualData("No Vaccines",
                                                 group_by = c("income_group", "week"),
-                                                exclude_iso3cs = "CHN") %>%
+                                                exclude_iso3cs = exclude_iso3cs) %>%
   filter(week > "2020-12-01")
 
 fig3_df_income_overall <- loadCounterfactualData("No Vaccines",
                                                  group_by = c("income_group"),
-                                                 exclude_iso3cs = "CHN")
+                                                 exclude_iso3cs = exclude_iso3cs)
 
 #standardise by country
 fig3_df_standard <- fig3_df_weekly %>%

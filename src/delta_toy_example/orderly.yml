@@ -50,6 +50,7 @@ artefacts:
       filenames:
         - fitting_plot.pdf
         - res.Rds
+        - reff_plot.Rds
 
 # An optional name to describe the report in more detail than its
 # directory name (which must be short) but less detail than

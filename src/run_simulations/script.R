@@ -165,6 +165,11 @@ counterfactuals <- lapply(iso3cs, function(iso3c){
                          date_vaccine_change = as.Date(date) - 1,
                          vaccine_efficacy_infection = c(0,0),
                          vaccine_efficacy_disease = c(0,0)),
+    `No Vaccines-No Healthcare Surging` = list(max_vaccine = c(0,0),
+                         date_vaccine_change = as.Date(date) - 1,
+                         vaccine_efficacy_infection = c(0,0),
+                         vaccine_efficacy_disease = c(0,0),
+                         no_healthcare = TRUE),
     `COVAX` = covax_data[[iso3c]]
   )
 })
@@ -196,7 +201,7 @@ walk(
     })
     #save each counterfactual seperately in temp files
     for(thisCounterfactual in
-        c("Baseline", "Baseline-Direct", "Baseline-No Healthcare Surging", names(counterfactuals[[1]]))
+        c("Baseline", "Baseline-Direct", "Baseline-No Healthcare Surging", "Baseline-Direct & No Healthcare Surging", names(counterfactuals[[1]]))
     ){
       temp_list <- list()
       for(j in seq_along(deaths_averted_list)){
@@ -220,7 +225,7 @@ unlink("temp", recursive = TRUE)
 
 #combine seperate counterfactual files
 walk(
-  c("Baseline", "Baseline-Direct", "Baseline-No Healthcare Surging", names(counterfactuals[[1]])),
+  c("Baseline", "Baseline-Direct", "Baseline-No Healthcare Surging", "Baseline-Direct & No Healthcare Surging", names(counterfactuals[[1]])),
   function(thisCounterfactual){
     #get names of files
     temp_files <- paste0(thisCounterfactual, map_dbl(groups, ~head(.x, 1)), ".Rds")

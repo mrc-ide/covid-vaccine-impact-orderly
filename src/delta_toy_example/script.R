@@ -157,19 +157,12 @@ delta_characteristics <- tribble(
   ~start_date, ~immune_escape, ~hosp_modifier, ~delta_shift_dur,
   as_date("2021-06-01"), 0, 1, 60,
   as_date("2021-06-01"), 0.10, 1, 60,
-  as_date("2021-06-01"), 0.15, 1, 60,
   as_date("2021-06-01"), 0.20, 1, 60,
-  as_date("2021-06-01"), 0.25, 1, 60,
   as_date("2021-06-01"), 0.30, 1, 60,
-  as_date("2021-06-01"), 0.35, 1, 60,
   as_date("2021-06-01"), 0.40, 1, 60,
-  as_date("2021-06-01"), 0.45, 1, 60,
   as_date("2021-06-01"), 0.50, 1, 60,
-  as_date("2021-06-01"), 0.55, 1, 60,
   as_date("2021-06-01"), 0.60, 1, 60,
-  as_date("2021-06-01"), 0.65, 1, 60,
   as_date("2021-06-01"), 0.70, 1, 60,
-  as_date("2021-06-01"), 0.75, 1, 60,
   as_date("2021-06-01"), 0.80, 1, 60
 ) %>%
   mutate(
@@ -180,8 +173,27 @@ delta_characteristics <- tribble(
     )
   )
 
-#delta_characteristics <- delta_characteristics[c(1, nrow(delta_characteristics)),]
 ## Run fitting + calculate deaths averted
+#generate plot so we can check quality
+create_plot <- function(model_fit, start_date, immune_escape, hosp_modifier, delta_shift_dur){
+  dp_plot(model_fit) +
+    labs(
+      title =
+        paste0(
+          "Start Date:", start_date,
+          " Immune Escape:", immune_escape,
+          " Hospitalisation Modifier:", hosp_modifier,
+          " Shift Duration:", delta_shift_dur
+        )
+    )
+}
+calculate_reff <- function(out){
+  ratios <- squire.page::get_immunity_ratios_vaccine(out)
+  reff <- get_Rt(out) %>% dplyr::group_by(rep) %>% dplyr::mutate(ratios = ratios[[unique(.data$rep)]][seq_along(.data$Rt)],
+                                                               Reff = .data$Rt * .data$ratios) %>%
+    dplyr::ungroup()
+  return(reff)
+}
 model_fits <- pmap(
   .l = delta_characteristics,
   pmcmc_pars_list,
@@ -192,12 +204,12 @@ model_fits <- pmap(
     pmcmc_pars_list$pars_obs$prob_hosp_multiplier <- hosp_modifier
     pmcmc_pars_list$pars_obs$delta_start_date <- start_date
     pmcmc_pars_list$pars_obs$shift_duration <- delta_shift_dur
-
-    #pmcmc_pars_list$pars_obs$dur_R <- delta_characteristics$dur_R_shift[1]
-    #pmcmc_pars_list$pars_obs$prob_hosp_multiplier <- delta_characteristics$hosp_modifier[1]
-    #pmcmc_pars_list$pars_obs$delta_start_date <- delta_characteristics$start_date[1]
-    #pmcmc_pars_list$pars_obs$shift_duration <- delta_characteristics$delta_shift_dur[1]
-    #pmcmc_pars_list$n_mcmc <- 100
+#
+# pmcmc_pars_list$pars_obs$dur_R <- delta_characteristics$dur_R_shift[1]
+# pmcmc_pars_list$pars_obs$prob_hosp_multiplier <- delta_characteristics$hosp_modifier[1]
+# pmcmc_pars_list$pars_obs$delta_start_date <- delta_characteristics$start_date[1]
+# pmcmc_pars_list$pars_obs$shift_duration <- delta_characteristics$delta_shift_dur[1]
+# pmcmc_pars_list$n_mcmc <- 100
 
     # fit to data
     model_fit <- exec(
@@ -210,17 +222,8 @@ model_fits <- pmap(
     model_fit$pmcmc_results$inputs$prior <- function(pars) {
       0
     }
-    #generate plot so we can check quality
-    plot <- dp_plot(model_fit) +
-      labs(
-        title =
-          paste0(
-            "Start Date:", start_date,
-            " Immune Escape:", immune_escape,
-            " Hospitalisation Modifier:", hosp_modifier,
-            " Shift Duration:", delta_shift_dur
+    plot <- create_plot(model_fit, start_date, immune_escape, hosp_modifier, delta_shift_dur
           )
-      )
     #generate parameter draws
     pars_list <- squire.page::generate_parameters(model_fit, draws = 25)
     #get baseline deaths
@@ -230,9 +233,13 @@ model_fits <- pmap(
     )
     #reff
     model_fit$parameters$country <- "United States"
-    baseline_reff <- squire.page::rt_plot_immunity(
+    baseline_reff <- calculate_reff(
       squire.page::generate_draws(model_fit, pars_list)
     )
+
+    # squire.page::rt_plot_immunity(
+    #   squire.page::generate_draws(model_fit, pars_list)
+    # )
     #generate counterfactual deaths
     model_fit$interventions$max_vaccine <- c(0, 0)
     model_fit$odin_parameters$max_vaccine <- c(0, 0)
@@ -243,9 +250,12 @@ model_fits <- pmap(
       squire.page::generate_draws(model_fit, pars_list),
       var_select = "deaths"
     )
-    counterfactual_reff <- squire.page::rt_plot_immunity(
+    counterfactual_reff <- calculate_reff(
       squire.page::generate_draws(model_fit, pars_list)
     )
+    #   squire.page::rt_plot_immunity(
+    #   squire.page::generate_draws(model_fit, pars_list)
+    # )
     #merge and calculate total deaths averted
     deaths_averted <- baseline_deaths %>%
       group_by(replicate) %>%
@@ -267,23 +277,37 @@ model_fits <- pmap(
         delta_delta_shift_dur = delta_shift_dur
       )
     #as an experiment we also plot difference in reff from both
-    reff_df <- baseline_reff$rts %>%
-      select(date, Reff_median) %>%
-      rename(vacc_Reff = Reff_median) %>%
+    reff_df <- #
+      baseline_reff %>%
+      select(date, Reff, rep) %>%
+      rename(vacc_Reff = Reff) %>%
       full_join(
-        counterfactual_reff$rts %>%
-          select(date, Reff_median)
+        counterfactual_reff %>%
+          select(date, Reff, rep)
       ) %>%
-      mutate(
-        Reff_diff = Reff_median - vacc_Reff
-      ) %>%
-      select(date, Reff_diff) %>%
       mutate(
         delta_start_date = start_date,
         delta_immune_escape = immune_escape,
         delta_hosp_modifier = hosp_modifier,
         delta_delta_shift_dur = delta_shift_dur
       )
+      # baseline_reff$rts %>%
+      # select(date, Reff_median) %>%
+      # rename(vacc_Reff = Reff_median) %>%
+      # full_join(
+      #   counterfactual_reff$rts %>%
+      #     select(date, Reff_median)
+      # ) %>%
+      # mutate(
+      #   Reff_diff = Reff_median - vacc_Reff
+      # ) %>%
+      # select(date, Reff_diff) %>%
+      # mutate(
+      #   delta_start_date = start_date,
+      #   delta_immune_escape = immune_escape,
+      #   delta_hosp_modifier = hosp_modifier,
+      #   delta_delta_shift_dur = delta_shift_dur
+      # )
 
     return(list(
       plot = plot,
@@ -294,23 +318,25 @@ model_fits <- pmap(
 )
 #pdf of plots
 pdf("fitting_plot.pdf")
-lapply(model_fits, function(x){x$plot})
+map(model_fits, ~print(.x$plot))
 dev.off()
 #combine reff differences
-pdf("reff_plot.pdf")
-do.call(
-  rbind,
-  map(
-    model_fits, ~.x$reff
-  )
-) %>%
-  rename(`Immune Escape:` = delta_immune_escape) %>%
-  ggplot(aes(x = date, y = Reff_diff,
-             colour = `Immune Escape:`, group = `Immune Escape:`)) +
-  geom_line() +
-  ggpubr::theme_pubclean() +
-  labs(x = "Date", y = "Reduction in effective reproduction\nfrom vaccine induced protection")
-dev.off()
+saveRDS(
+  do.call(
+    rbind,
+    map(
+      model_fits, ~.x$reff
+    )
+  ),# %>%
+    # rename(`Immune Escape:` = delta_immune_escape) %>%
+    # select(date, Reff_diff, `Immune Escape:`) %>%
+    # ggplot(aes(x = date, y = Reff_diff,
+    #            colour = `Immune Escape:`, group = `Immune Escape:`)) +
+    # geom_line() +
+    # ggpubr::theme_pubclean() +
+    # labs(x = "Date", y = "Reduction in effective reproduction\nfrom vaccine induced protection"),
+  "reff_plot.Rds"
+)
 #save results
 results_df <- do.call(
   rbind,

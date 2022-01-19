@@ -97,6 +97,26 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = TRUE,
       baseline_deaths,
       baseline_healthcare_deaths
     )
+    #healthcare+direct
+    baseline_healthcare_direct <- squire.page::generate_draws(remove_indirect(remove_healthcare(out)), pars.list, draws)
+    # format the counter factual run
+    baseline_healthcare_direct_deaths <- nimue_format(baseline_healthcare_direct, c("deaths", "infections"), date_0 = date_0,
+                                               reduce_age = reduce_age) %>%
+      dplyr::distinct() %>%
+      tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
+      na.omit() %>%
+      dplyr::mutate(counterfactual = "Baseline-Direct & No Healthcare Surging")
+
+    if(!reduce_age){
+      baseline_healthcare_direct_deaths <- dplyr::mutate(baseline_healthcare_direct_deaths, age_group = as.character(.data$age_group))
+    }
+
+    baseline_healthcare_direct_deaths$t <- NULL
+
+    baseline_deaths <- rbind(
+      baseline_deaths,
+      baseline_healthcare_direct_deaths
+    )
   }
 
   #set up data frame to hold results
@@ -287,6 +307,13 @@ update_counterfactual <- function(out, counterfactual){
     lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)})
   out$interventions$vaccine_efficacy_infection <-
     lapply(counterfactual$vaccine_efficacy_infection, function(x){rep(x, 17)})
+
+  #also remove healthcare if requested
+  if(!is.null(counterfactual$no_healthcare)){
+    if(counterfactual$no_healthcare){
+      remove_healthcare(out)
+    }
+  }
 
   return(out)
 }

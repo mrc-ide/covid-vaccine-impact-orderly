@@ -76,6 +76,8 @@ parameters:
   seed:
     default: NA
   excess: ~
+  exclude_iso3cs:
+    default: NA
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -90,9 +92,9 @@ parameters:
 #
 packages:
   - dplyr
+  - purrr
   - ggplot2
   - ggpubr
-  - cowplot
   - squire.page
 
 # Source files, in addition to the script.  Typically these will
@@ -152,3 +154,7 @@ depends:
     id: latest(parameter:date == date)
     use:
       owid.rds: owid.Rds
+  fetch_fits:
+    id: latest(parameter:date == date && parameter:excess == TRUE)
+    use:
+      countryfits.Rds: countryfits.Rds
