@@ -2,18 +2,20 @@ if(!is.na(seed)){
   set.seed(seed)
 }
 
+exclude_iso3cs <- c("CHN", "IRQ", "SYR", "YEM")
+
 ###Load data:
 iso3cs <- readRDS(
   "counterfactuals.Rds"
-) %>% pull(iso3c) %>% unique()
+) %>% pull(iso3c) %>% unique() %>% setdiff(exclude_iso3cs)
 fig1_df_overall <- loadCounterfactualData(c("No Vaccines", "Baseline-Direct"),
                                           group_by = "date",
-                                          exclude_iso3cs = "CHN"
+                                          exclude_iso3cs = exclude_iso3cs
                                           )
 fig1_df_income <- loadCounterfactualData("No Vaccines",
                                          group_by = c("income_group", "date")
                                          ,
-                                         exclude_iso3cs = "CHN")
+                                         exclude_iso3cs = exclude_iso3cs)
 fig1_df_owid <- readRDS(
   "owid.Rds"
 ) %>%

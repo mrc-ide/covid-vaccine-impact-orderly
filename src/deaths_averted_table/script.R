@@ -3,22 +3,25 @@ if(!is.na(seed)){
   set.seed(seed)
 }
 
+exclude_iso3cs <- c("CHN", "IRQ", "SYR", "YEM")
+
 ###Load data:
 table1_df_overall <- loadCounterfactualData(c("No Vaccines"),
                                             group_by = NULL,
-                                            exclude_iso3cs = "CHN")
+                                            exclude_iso3cs = exclude_iso3cs)
 table1_df_income <- loadCounterfactualData(c("No Vaccines"),
                                            group_by = "income_group",
-                                           exclude_iso3cs = "CHN")
+                                           exclude_iso3cs = exclude_iso3cs)
 
 table1_df_who <- loadCounterfactualData(c("No Vaccines"),
                                         group_by = "who_region",
-                                        exclude_iso3cs = "CHN")
+                                        exclude_iso3cs = exclude_iso3cs)
 table1_df_vaccine <- readRDS(
   "counterfactuals.Rds"
 )%>%
   rename(vaccines = `Baseline (Total Vaccines)`) %>%
   select(iso3c, vaccines) %>%
+  filter(!(iso3c %in% exclude_iso3cs)) %>%
   left_join(
     squire::population %>%
       group_by(iso3c) %>%

@@ -3,22 +3,26 @@ if(!is.na(seed)){
   set.seed(seed)
 }
 
+exclude_iso3cs <- c("CHN", "IRQ", "SYR", "YEM")
+
 ###Load data:
+covax_iso3cs <- get_covax_iso3c()
 table1_df_overall <- loadCounterfactualData(c("COVAX"),
                                             group_by = NULL,
-                                            exclude_iso3cs = "CHN")
+                                            exclude_iso3cs = exclude_iso3cs)
 table1_df_income <- loadCounterfactualData(c("COVAX"),
                                            group_by = "income_group",
-                                           exclude_iso3cs = "CHN")
+                                           exclude_iso3cs = exclude_iso3cs)
 
 table1_df_who <- loadCounterfactualData(c("COVAX"),
                                         group_by = "who_region",
-                                        exclude_iso3cs = "CHN")
+                                        exclude_iso3cs = exclude_iso3cs)
 table1_df_vaccine <- readRDS(
   "counterfactuals.Rds"
 )%>%
   rename(vaccines = `Baseline (Total Vaccines)`) %>%
   select(iso3c, vaccines) %>%
+  filter(iso3c %in% covax_iso3cs & !(iso3c %in% exclude_iso3cs)) %>%
   left_join(
     squire::population %>%
       group_by(iso3c) %>%
@@ -50,11 +54,11 @@ writeText <- function(row, name){
     ""
   } else{
     paste0(
-      format(row[[paste0(name,"_avg")]], scientific = FALSE, digits = 4, big.mark = ","),
+      format(-row[[paste0(name,"_avg")]], scientific = FALSE, digits = 4, big.mark = ","),
       " (",
-      format(row[[paste0(name,"_025")]], scientific = FALSE, digits = 4, big.mark = ","),
+      format(-row[[paste0(name,"_025")]], scientific = FALSE, digits = 4, big.mark = ","),
       " - ",
-      format(row[[paste0(name,"_975")]], scientific = FALSE, digits = 4, big.mark = ","),
+      format(-row[[paste0(name,"_975")]], scientific = FALSE, digits = 4, big.mark = ","),
       ")"
     )
   }
@@ -91,12 +95,10 @@ table1 <- table1_df_overall %>%
   )
   ) %>%
   rowwise() %>%
-  mutate(`Averted Deaths` = writeText(.data, "averted_deaths"),
-         `Averted Deaths\nPer 10k People` = writeText(.data, "per_pop_averted_deaths"),
-         `Averted Deaths\nPer 10k Vaccines` = writeText(.data, "per_vacc_averted_deaths")) %>%
-  select(` `, `Averted Deaths`, `Averted Deaths\nPer 10k People`,  `Averted Deaths\nPer 10k Vaccines`)
+  mutate(`Reduction in Deaths` = writeText(.data, "averted_deaths"),
+         `Reduction in Deaths\nPer 10k People` = writeText(.data, "per_pop_averted_deaths"),
+         `Reduction in Deaths\nPer 10k Vaccines` = writeText(.data, "per_vacc_averted_deaths")) %>%
+  select(` `, `Reduction in Deaths`, `Reduction in Deaths\nPer 10k People`,  `Reduction in Deaths\nPer 10k Vaccines`)
 
 
 saveRDS(table1, "covax_averted_table.Rds")
-
-
