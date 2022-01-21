@@ -2,8 +2,6 @@ if(!is.na(seed)){
   set.seed(seed)
 }
 
-exclude_iso3cs <- c("CHN", "IRQ", "SYR", "YEM")
-
 ###Load data:
 iso3cs <- readRDS(
   "counterfactuals.Rds"

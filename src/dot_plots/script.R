@@ -1,7 +1,5 @@
 
 ###Load data:
-exclude_iso3cs <- c("CHN", "IRQ", "SYR", "YEM")
-
 fig2_df <- loadCounterfactualData("No Vaccines",
                                   group_by = "iso3c",
                                   exclude_iso3cs = exclude_iso3cs)
