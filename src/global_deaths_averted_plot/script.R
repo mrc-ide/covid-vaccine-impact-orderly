@@ -16,6 +16,7 @@ fig1_df_income <- loadCounterfactualData("No Vaccines",
                                          group_by = c("income_group", "date")
                                          ,
                                          exclude_iso3cs = exclude_iso3cs)
+
 if(excess){
   #need to extract data from model fits
   fits <- readRDS("countryfits.Rds")

@@ -3,8 +3,6 @@ if(!is.na(seed)){
   set.seed(seed)
 }
 
-exclude_iso3cs <- c("CHN")
-
 ###Load data:
 covax_iso3cs <- get_covax_iso3c()
 table1_df_overall <- loadCounterfactualData(c("COVAX"),
