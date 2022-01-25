@@ -189,7 +189,8 @@ summary_table_id <- orderly::orderly_run("summary_table",
                                          parameters = list(
                                              date = date,
                                              excess = TRUE,
-                                             seed = 1001332
+                                             seed = 1001332,
+                                             exclude_iso3cs = exclude_iso3cs
                                            ),
                                          echo = FALSE)
 orderly::orderly_commit(summary_table_id)
@@ -289,7 +290,8 @@ summary_table_id <- orderly::orderly_run("summary_table",
                                          parameters = list(
                                              date = date,
                                              excess = FALSE,
-                                             seed = 1001332
+                                             seed = 1001332,
+                                             exclude_iso3cs = exclude_iso3cs
                                            ),
                                          echo = FALSE)
 orderly::orderly_commit(summary_table_id)
@@ -311,10 +313,14 @@ Generates plots of each fit to go into the appendix, utilises the country fits
 not the simulation results
 
 ```{r, echo=TRUE, eval=FALSE}
-delta_toy_example_id <- orderly::orderly_run("delta_toy_example", echo = FALSE)
+delta_toy_example_id <- orderly::orderly_run("delta_toy_example",
+                                             parameters = list(seed = 10001),
+                                             echo = FALSE)
 orderly::orderly_commit(delta_toy_example_id)
 
-delta_toy_example_india_id <- orderly::orderly_run("delta_toy_example_india", echo = FALSE)
+delta_toy_example_india_id <- orderly::orderly_run("delta_toy_example_india",
+                                             parameters = list(seed = 1012),
+                                             echo = FALSE)
 orderly::orderly_commit(delta_toy_example_india_id)
 ```
 
@@ -350,11 +356,18 @@ deaths_averted_hospital_id <- orderly::orderly_run("deaths_averted_hospital",
                                              exclude_iso3cs = exclude_iso3cs
                                            ), echo = FALSE)
 orderly::orderly_commit(deaths_averted_hospital)
-
-orderly::orderly_develop_start("deaths_averted_hospital",
-                                           parameters = list(
-                                             date = date,
-                                             seed = 1000100,
-                                             exclude_iso3cs = exclude_iso3cs
-                                           ))
+#WIP!!!!
 ```
+
+A plot looking at deaths averted by reduction in hospital and ICU burden.
+
+```{r, echo=TRUE, eval=FALSE}
+compile_plots_si_id <- orderly::orderly_run("compile_plots_si",
+                                         parameters = list(
+                                             date = date
+                                           ),
+                                         echo = FALSE)
+orderly::orderly_commit(compile_plots_si_id)
+```
+
+Compile some of the figures and tables for the SI.

@@ -25,7 +25,7 @@
 # You must have a script that does something with the data.  This
 # will be a single string and the filename must exist when orderly is
 # run
-script: ~
+script: script.R
 
 # You must list at least one artefact that your report will generate.
 # Each artefact consists of one or more files.  The format is to list
@@ -43,7 +43,16 @@ script: ~
 #             - report.html
 #             - figures/fig1.png
 #             - figures/fig2.png
-artefacts: ~
+artefacts:
+  - staticgraph:
+      description: pdfs, plots and csvs
+      filenames:
+        - delta_sensitivity.png
+        - delta_sensitivity.pdf
+        - reported_averted_deaths_table.csv
+        - reported_excess_comparison.png
+        - reported_excess_comparison.pdf
+
 
 # An optional name to describe the report in more detail than its
 # directory name (which must be short) but less detail than
@@ -68,7 +77,8 @@ artefacts: ~
 # would declare a parameter called 'a' with a default value of 1, and
 # a parameter of b with no default.
 #
-# parameters:
+parameters:
+  date: ~
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -81,7 +91,9 @@ artefacts: ~
 # will make it easier to provision containers to run the orderly
 # reports.
 #
-# packages:
+packages:
+  - ggplot2
+  - ggpubr
 
 # Source files, in addition to the script.  Typically these will
 # contain function definitions.  These will be sourced after loading
@@ -128,4 +140,27 @@ artefacts: ~
 #         use:
 #           other-data.csv: data.csv
 #
-# depends:
+depends:
+  delta_toy_example:
+    id: latest
+    use:
+      usa_res.Rds: res.Rds
+      usa_reff_plot.Rds: reff_plot.Rds
+  delta_toy_example_india:
+    id: latest
+    use:
+      india_res.Rds: res.Rds
+      india_reff_plot.Rds: reff_plot.Rds
+  deaths_averted_table:
+    id: latest(parameter:date == date && parameter:excess == FALSE)
+    use:
+      averted_table.Rds: averted_table.Rds
+  compare_excess_reported:
+    id: latest(parameter:date == date)
+    use:
+      reported_excess_comparison.Rds: reported_excess_comparison.Rds
+
+  # deaths_averted_hospital:
+  #   id: latest(parameter:date == date)
+  #   use:
+  #     hospital_effects.Rds: hospital_effects.Rds
