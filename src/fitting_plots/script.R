@@ -1,33 +1,28 @@
 #must use the preset draws so that it's the same values as those used in the simulation
-draws <- NULL
 
-#similarly to simulations we temporarily store the fits for faster access
 fits <-  readRDS("countryfits.Rds")
-#create a temporary subdirectory to make access quicker
-dir.create("temp", showWarnings = FALSE)
-iso3cs <- c()
-for(i in seq_along(fits)){
-  if(!is.null(fits[[i]][["pmcmc_results"]])){
-    iso3cs <- c(iso3cs, names(fits[i]))
-    saveRDS(fits[[i]], paste0("temp/",names(fits[i]), ".Rds"))
-  }
-}
-remove(i)
-remove(fits)
-
-plots_list <- map(iso3cs, function(iso3c){
-  #load fit and simulate
-  out <- squire.page::generate_draws(
-    readRDS(paste0("temp/", iso3c, ".Rds")),
-    draws = draws
+dir.create("temp")
+pdfs <- unlist(lapply(seq_along(fits), function(x){
+  iso <- names(fits)[x]
+  if((!(iso %in% exclude_iso3cs)) & !is.null(fits[[x]])){
+    fit <- generate_draws(fits[[x]], draws = NULL, pars.list = NULL)
+    fit_1 <- dp_plot(fit) + labs(
+      title = paste0(countrycode::countrycode(iso, origin = "iso3c", destination = "country.name"), ":", iso)
     )
-
-  #generate plots
-  list(
-    cdp = squire.page::cdp_plot(out),
-    dp = squire.page::dp_plot(out),
-    ar = squire.page::ar_plot(out)
-  )
-})
-
-saveRDS(plots_list, "fitting_plots.Rds")
+    fit_2 <- cdp_plot(fit)
+    plot <- ggarrange(
+      fit_1,
+      fit_2,
+      nrow = 2
+    )
+    dest <- paste0("temp", "\\", iso, ".pdf")
+    ggsave(dest, plot)
+    return(dest)
+  }
+}))
+#combine
+pdf_combine(
+  pdfs,
+  output = "fitting_plots.pdf"
+)
+unlink("temp", recursive = TRUE)

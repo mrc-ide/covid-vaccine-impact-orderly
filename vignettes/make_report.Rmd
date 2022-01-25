@@ -180,27 +180,135 @@ orderly::orderly_commit(map_plot_id)
 These tasks all generate *ggplot* objects so that they are easier to modify when
 producing the report.
 
-## Generate Fitting Plots
+# Outputs
+
+## GAVI CSV File
+
+```{r, echo=TRUE, eval=FALSE}
+summary_table_id <- orderly::orderly_run("summary_table",
+                                         parameters = list(
+                                             date = date,
+                                             excess = TRUE,
+                                             seed = 1001332
+                                           ),
+                                         echo = FALSE)
+orderly::orderly_commit(summary_table_id)
+```
+
+This is also used for the country specific outputs csv file.
+
+## Compile Plots to Images
+
+```{r, echo=TRUE, eval=FALSE}
+compile_plots_id <- orderly::orderly_run("compile_plots",
+                                         parameters = list(
+                                             date = date
+                                           ),
+                                         echo = FALSE)
+orderly::orderly_commit(compile_plots_id)
+```
+
+Originally a report this now just puts the plots into pngs. All in one task so
+that it is simple to modify dimensions etc.
+
+## Numbers for Report
+
+```{r, echo=TRUE, eval=FALSE}
+generate_numbers_id <- orderly::orderly_run("generate_numbers",
+                                         parameters = list(
+                                             date = date,
+                                             seed = 8006646
+                                           ),
+                                         echo = FALSE)
+orderly::orderly_commit(generate_numbers_id)
+```
+
+Generate any other values needed
+
+# Supplementry Plots
+
+## Reported data plots
+
+```{r, echo=TRUE, eval=FALSE}
+if(fits_present){
+  fetch_fit_id <- orderly::orderly_run("fetch_fits",
+                                     parameters = list(
+                                       date = date,
+                                       excess = FALSE,
+                                       repo = repo,
+                                       one_drive = one_drive,
+                                       one_drive_loc = one_drive_loc
+                                     ), echo = FALSE)
+  orderly::orderly_commit(fetch_fit_id)
+} else {
+  #now we make a zip to send to the other system and run there to collect the fits
+  dir.create("remote/export", showWarnings = FALSE, recursive = TRUE)
+  dir.create("remote/import", showWarnings = FALSE, recursive = TRUE)
+  fetch_fit_id <- orderly::orderly_bundle_pack("remote/export", "fetch_fits",
+                       parameters = list(
+                                       date = date,
+                                       excess = FALSE,
+                                       repo = repo
+                                     ))
+  #now move this fit to the correct system and run with 
+  #orderly::orderly_bundle_run() and put the output in remote/import
+  orderly::orderly_bundle_import(paste0("remote/import/", fetch_fit_id$id, ".zip"))
+}
+```
+
+Load in the fits
+
+```{r, echo=TRUE, eval=FALSE}
+run_simulations_id <- orderly::orderly_run("run_simulations",
+                                           parameters = list(
+                                             date = date,
+                                             seed = 100100112,
+                                             excess = FALSE,
+                                             parallel = FALSE
+                                           ), echo = FALSE)
+orderly::orderly_commit(run_simulations_id)
+```
+
+Generate simulations
+
+```{r, echo=TRUE, eval=FALSE}
+deaths_averted_table_id <- orderly::orderly_run("deaths_averted_table",
+                                           parameters = list(
+                                             date = date,
+                                             excess = FALSE,
+                                             seed = 100101011,
+                                             exclude_iso3cs = exclude_iso3cs
+                                           ), echo = FALSE)
+orderly::orderly_commit(deaths_averted_table_id)
+```
+
+Generate deaths averted table.
+
+```{r, echo=TRUE, eval=FALSE}
+summary_table_id <- orderly::orderly_run("summary_table",
+                                         parameters = list(
+                                             date = date,
+                                             excess = FALSE,
+                                             seed = 1001332
+                                           ),
+                                         echo = FALSE)
+orderly::orderly_commit(summary_table_id)
+```
+
+GAVI table which we'll use for the country specific data.
 
 ```{r, echo=TRUE, eval=FALSE}
 fitting_plots_id <- orderly::orderly_run("fitting_plots",
                                            parameters = list(
                                              date = date,
-                                             excess = TRUE
+                                             excess = TRUE,
+                                             exclude_iso3cs = exclude_iso3cs
                                            ), echo = FALSE)
 orderly::orderly_commit(fitting_plots_id)
-orderly::orderly_develop_start("fitting_plots",
-                                           parameters = list(
-                                             date = date,
-                                             excess = TRUE
-                                           ))
-orderly::orderly_develop_clean("fitting_plots")
 ```
 
 Generates plots of each fit to go into the appendix, utilises the country fits
 not the simulation results
-
-## Delta Adjustment Toy Model
 
 ```{r, echo=TRUE, eval=FALSE}
 delta_toy_example_id <- orderly::orderly_run("delta_toy_example", echo = FALSE)
@@ -213,11 +321,40 @@ orderly::orderly_commit(delta_toy_example_india_id)
 Produce model fits for some simulated data to explore the relationship between
 immune escape and deaths averted.
 
-## Compile Plots to Images
-
 ```{r, echo=TRUE, eval=FALSE}
+#a dummy task to get around that orderly tasks can't depend on the same type of
+#task twice
+reported_data_for_comparison_id <- orderly::orderly_run("reported_data_for_comparison",
+                                           parameters = list(
+                                             date = date
+                                           ))
+orderly::orderly_commit(reported_data_for_comparison_id)
 
+compare_excess_reported_id <- orderly::orderly_run("compare_excess_reported",
+                                           parameters = list(
+                                             date = date,
+                                             exclude_iso3cs = exclude_iso3cs,
+                                             seed = 991001
+                                           ), echo = FALSE)
+orderly::orderly_commit(compare_excess_reported_id)
 ```
 
-Originally a report this now just puts the plots into pngs. All in one task so
-that it is simple to modify dimensions etc.
+Comparison of deaths averted in excess-mortality fitting and reported deaths.
+
+```{r, echo=TRUE, eval=FALSE}
+deaths_averted_hospital_id <- orderly::orderly_run("deaths_averted_hospital",
+                                           parameters = list(
+                                             date = date,
+                                             excess = TRUE,
+                                             seed = 1000100,
+                                             exclude_iso3cs = exclude_iso3cs
+                                           ), echo = FALSE)
+orderly::orderly_commit(deaths_averted_hospital)
+
+orderly::orderly_develop_start("deaths_averted_hospital",
+                                           parameters = list(
+                                             date = date,
+                                             seed = 1000100,
+                                             exclude_iso3cs = exclude_iso3cs
+                                           ))
+```

@@ -16,7 +16,9 @@ if(excess){
 } else {
   direct <- FALSE
   baseline_cf_names <- c("Baseline")
-  empty_cf_files <- c("Baseline-Direct", "Baseline-No Healthcare Surging", "Baseline-Direct & No Healthcare Surging", "No Vaccines-No Healthcare Surging")
+  empty_cf_files <- c("Baseline-Direct", "Baseline-No Healthcare Surging",
+                      "Baseline-Direct & No Healthcare Surging", "No Vaccines-No Healthcare Surging",
+                      "COVAX")
 }
 
 ## Generate Deaths Averted Data for all countries with nimue fits
@@ -221,8 +223,7 @@ if(direct){
       `No Vaccines` = list(max_vaccine = c(0,0),
                            date_vaccine_change = as.Date(date) - 1,
                            vaccine_efficacy_infection = c(0,0),
-                           vaccine_efficacy_disease = c(0,0)),
-      `COVAX` = covax_data[[iso3c]]
+                           vaccine_efficacy_disease = c(0,0))
     )
   })
 }
@@ -250,6 +251,11 @@ walk(
                        direct = direct)
       )
 
+      #shorten data to current date
+      df <- df %>%
+        rename(obs_date=date) %>%
+        filter(date <= date) %>%
+        rename(date = obs_date)
       return(df)
     })
     #save each counterfactual seperately in temp files

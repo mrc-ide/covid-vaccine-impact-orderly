@@ -313,9 +313,8 @@ update_counterfactual <- function(out, counterfactual){
   #also remove healthcare if requested
   if(!is.null(counterfactual$no_healthcare)){
     if(counterfactual$no_healthcare){
-      remove_healthcare(out)
+      out <- remove_healthcare(out)
     }
   }
-
   return(out)
 }
