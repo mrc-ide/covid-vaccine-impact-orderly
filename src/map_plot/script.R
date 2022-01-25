@@ -40,6 +40,10 @@ vaccineMap <- function(data, var, lab=NULL, title=NULL,
   #bin data
   #calculate quantiles
   breaks <- find_breaks(data[[var]], n, zeroCutoff, sig_digits)
+  #Round to whole numbers for ease of use
+  breaks[breaks < 10] <- signif(breaks[breaks < 10], 1)
+  breaks[breaks >= 10] <- signif(breaks[breaks >= 10], 2)
+  breaks <- unique(breaks)
 
   data <- dplyr::mutate(data,
                         varCat = cut(data[[var]],
@@ -52,18 +56,20 @@ vaccineMap <- function(data, var, lab=NULL, title=NULL,
     by = "iso3c"
   )
   #where to plot
-    xlim <- c(-160,170)
+    xlim <- c(-155,170)
     ylim <- c(-50,60)
-    legendPos <-  c(0.1, 0.25)
+    legendPos <-  c(0.15, 0.31)
   #plot
   ggplot2::ggplot(world_and_data) +
     ggplot2::geom_rect(ggplot2::aes(xmin = -180, xmax = 180, ymin = -75, ymax = 90), fill = "light blue", inherit.aes = FALSE) +
     ggplot2::geom_sf(ggplot2::aes_string(fill="varCat"), colour="black", size = 1/10) +
     ggplot2::theme_void() +
-    ggplot2::scale_fill_brewer(palette = "OrRd", na.value = "Grey") +
+    ggplot2::scale_fill_brewer(palette = "OrRd", na.value = "grey")+#,  na.translate = F) +
     ggplot2::coord_sf(xlim = xlim, ylim = ylim) +
     ggplot2::labs(fill = lab, title = title) +
-    ggplot2::theme(legend.position = legendPos)
+    ggplot2::theme(legend.position = legendPos,
+                   legend.title = element_text( size=8), legend.text=element_text(size=8),
+                   legend.key.size = unit(0.5, 'cm'))
 }
 # Function to calculate breaks
 find_breaks <- function(variable, n, zeroCutoff = F, sig_digits = NULL){
@@ -123,6 +129,6 @@ floorPlus <- function(values, digits){
 }
 
 #plot per capita
-main_map <- vaccineMap(df, "averted_deaths_avg_per_capita", lab = "Deaths Averted Per 10k")
+main_map <- vaccineMap(df, "averted_deaths_avg_per_capita", lab = "Deaths Averted\nPer 10k:")
 
 saveRDS(main_map, "deaths_averted_map.Rds")

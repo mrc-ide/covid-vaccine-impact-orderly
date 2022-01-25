@@ -25,8 +25,8 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = TRUE,
   data <- out$pmcmc_results$inputs$data
   country <- out$parameters$country
   iso3c <- squire::population$iso3c[squire::population$country == country][1]
-  if(is.null(data$week_end)){
-    date_0 <- date_0
+  if(is.null(suppressWarnings(data$week_end))){
+    date_0 <- max(data$date)
   } else {
     date_0 <- max(data$week_end)
   }
@@ -162,31 +162,33 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = TRUE,
   deaths_df <- rbind(
     deaths_df,
     baseline_deaths
-  ) #ADD REMOVED DEATHS
+  )
 
-  if(out$interventions$pre_epidemic_isolated_deaths > 0){
-    if(reduce_age){
-      deaths_df <- rbind(deaths_df,
-                         expand.grid(replicate = unique(deaths_df$replicate),
-                                     counterfactual = unique(deaths_df$counterfactual)) %>%
-                           mutate(
-                             date = NA,
-                             deaths = out$interventions$pre_epidemic_isolated_deaths,
-                             infections = 0
-                           )
-      )
-    } else {
-      deaths_df <- rbind(deaths_df,
-                         expand.grid(replicate = unique(deaths_df$replicate),
-                                     counterfactual = unique(deaths_df$counterfactual),
-                                     age_group = unique(deaths_df$age_group)) %>%
-                           group_by(replicate, counterfactual) %>%
-                           mutate(
-                             date = NA,
-                             deaths = out$interventions$pre_epidemic_isolated_deaths/length(age_group),
-                             infections = 0
-                           ) %>% ungroup()
-      )
+  if(!is.null(out$interventions$pre_epidemic_isolated_deaths)){
+    if(out$interventions$pre_epidemic_isolated_deaths > 0){
+      if(reduce_age){
+        deaths_df <- rbind(deaths_df,
+                           expand.grid(replicate = unique(deaths_df$replicate),
+                                       counterfactual = unique(deaths_df$counterfactual)) %>%
+                             mutate(
+                               date = NA,
+                               deaths = out$interventions$pre_epidemic_isolated_deaths,
+                               infections = 0
+                             )
+        )
+      } else {
+        deaths_df <- rbind(deaths_df,
+                           expand.grid(replicate = unique(deaths_df$replicate),
+                                       counterfactual = unique(deaths_df$counterfactual),
+                                       age_group = unique(deaths_df$age_group)) %>%
+                             group_by(replicate, counterfactual) %>%
+                             mutate(
+                               date = NA,
+                               deaths = out$interventions$pre_epidemic_isolated_deaths/length(age_group),
+                               infections = 0
+                             ) %>% ungroup()
+        )
+      }
     }
   }
 

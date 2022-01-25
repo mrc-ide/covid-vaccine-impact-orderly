@@ -91,6 +91,7 @@ packages:
   - squire.page
   - readr
   - countrycode
+  - tidyr
 # Source files, in addition to the script.  Typically these will
 # contain function definitions.  These will be sourced after loading
 # any packages, and before running your script.  Use this in
@@ -144,3 +145,4 @@ depends:
       No Vaccines.Rds: No Vaccines.Rds
       Baseline.Rds: Baseline.Rds
       counterfactuals.Rds: counterfactuals.Rds
+      COVAX.Rds: COVAX.Rds

@@ -155,6 +155,6 @@ depends:
     use:
       owid.rds: owid.Rds
   fetch_fits:
-    id: latest(parameter:date == date && parameter:excess == TRUE)
+    id: latest(parameter:date == date && parameter:excess == excess)
     use:
       countryfits.Rds: countryfits.Rds

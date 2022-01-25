@@ -12,6 +12,14 @@ if(one_drive){
   files <- intersect(files, squire::population$iso3c)
   #load into one list
   fits <- lapply(files, function(file){readRDS(file.path(loc, paste0(file, ".Rds")))})
+  #remove if not a realy fitted object
+  if(!excess){
+    fits <- lapply(seq_along(fits), function(x){
+      if("lmic_nimue_simulation" %in% class(fits[[x]])){
+        fits[[x]]
+      }
+    })
+  }
   names(fits) <- files
 } else {
   if(repo == ""){

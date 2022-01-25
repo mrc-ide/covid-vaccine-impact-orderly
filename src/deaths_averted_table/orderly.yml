@@ -94,6 +94,7 @@ packages:
   - dplyr
   - gridExtra
   - squire.page
+  - tidyr
 
 
 # Source files, in addition to the script.  Typically these will

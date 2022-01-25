@@ -9,6 +9,16 @@ if(!is.na(seed)){
 # }
 draws <- NULL
 
+if(excess){
+  direct <- TRUE
+  baseline_cf_names <- c("Baseline", "Baseline-Direct", "Baseline-No Healthcare Surging", "Baseline-Direct & No Healthcare Surging")
+  empty_cf_files <- c()
+} else {
+  direct <- FALSE
+  baseline_cf_names <- c("Baseline")
+  empty_cf_files <- c("Baseline-Direct", "Baseline-No Healthcare Surging", "Baseline-Direct & No Healthcare Surging", "No Vaccines-No Healthcare Surging")
+}
+
 ## Generate Deaths Averted Data for all countries with nimue fits
 if(parallel){
   future::future(future::multisession())
@@ -40,31 +50,56 @@ covax_data <- lapply(iso3cs, function(iso3c){
     eligible_pop <- sum(squire::population$n[squire::population$iso3c == iso3c][tail(fit$parameters$vaccine_coverage_mat, 1)!=0])
     #check if over 20% full dose coverage
     #back calculate dose ratio
-    delta_shift_end <- fit$interventions$delta_adjustments$start_date +
-      fit$interventions$delta_adjustments$shift_duration
-    #use delta values to back calculate from final efficacy
-    delta_i_f <-  fit$interventions$delta_adjustments$ve_i_low_d
-    delta_i_s <-  fit$interventions$delta_adjustments$ve_i_high_d
-    delta_d_f <-  fit$interventions$delta_adjustments$ve_d_low_d
-    delta_d_s <-  fit$interventions$delta_adjustments$ve_d_high_d
-    cur_i_f <- delta_i_f
-    cur_i_s <- delta_i_s
+    #non delta effiacies
     #note this is hardcoded for now, pending rewrite to $interventions
     n_delta_i_f <- 0.6
     n_delta_i_s <- 0.8
     n_delta_d_f <- 0.8
     n_delta_d_s <- 0.98
+    if(excess){
+      delta_shift_end <- fit$interventions$delta_adjustments$start_date +
+        fit$interventions$delta_adjustments$shift_duration
+      #use delta values to back calculate from final efficacy
+      delta_i_f <-  fit$interventions$delta_adjustments$ve_i_low_d
+      delta_i_s <-  fit$interventions$delta_adjustments$ve_i_high_d
+      delta_d_f <-  fit$interventions$delta_adjustments$ve_d_low_d
+      delta_d_s <-  fit$interventions$delta_adjustments$ve_d_high_d
+      shift_duration <- fit$interventions$delta_adjustments$shift_duration
+      cur_i_f <- delta_i_f
+      cur_i_s <- delta_i_s
+    } else {
+      #delta may not be used
+      delta_shift_end <- tail(fit$pmcmc_results$inputs$pars_obs$delta_adjust$date_dur_R_change[1:2], 1)
+      if(is.null(delta_shift_end)){
+        delta_shift_end <- Inf
+        delta_i_f = n_delta_i_f
+        delta_i_s = n_delta_i_s
+        delta_d_f = n_delta_d_f
+        delta_d_s = n_delta_d_s
+        cur_i_f <- delta_i_f
+        cur_i_s <- delta_i_s
+      } else {
+        #use delta values to back calculate from final efficacy
+        #need to hardcode for this
+        delta_i_f = 0.224
+        delta_i_s = 0.646
+        delta_d_f = 0.75
+        delta_d_s = 0.94
+        cur_i_f <- delta_i_f
+        cur_i_s <- delta_i_s
+        shift_duration <- 60
+      }
+    }
     if(any(fit$interventions$max_vaccine > 0)){
-      if(delta_shift_end > date){
+      if(delta_shift_end > date & !is.infinite(delta_shift_end)){
         #scale values by how far into shift we are
-        prop <- 1-as.numeric(delta_shift_end - as.Date(date))/fit$interventions$delta_adjustments$shift_duration
+        prop <- 1-as.numeric(delta_shift_end - as.Date(date))/shift_duration
         cur_i_f <- n_delta_i_f*(1-prop) + delta_i_f*prop
         cur_i_s <- n_delta_i_s*(1-prop) + delta_i_s*prop
       }
       percentage_second_dose <-
         (tail(fit$interventions$vaccine_efficacy_infection, 1)[[1]][1] - cur_i_f)/
         (cur_i_s - cur_i_f)
-
       if(sum(fit$interventions$max_vaccine)*percentage_second_dose/eligible_pop < 0.2){
         dates <- fit$interventions$date_vaccine_change
         start_date <- tail(dates, 1)
@@ -72,12 +107,14 @@ covax_data <- lapply(iso3cs, function(iso3c){
         #just scale up efficacy so it does meet
         #calculate delta scaling
         delta_prop <- rep(0, length(dates))
-        delta_prop[dates >= fit$interventions$delta_adjustments$start_date &
-                     dates < delta_shift_end] <-
-          as.numeric(dates[dates >= fit$interventions$delta_adjustments$start_date &
-                             dates < delta_shift_end] - fit$interventions$delta_adjustments$start_date + 1)/
-          fit$interventions$delta_adjustments$shift_duration
-        delta_prop[dates >= delta_shift_end] <- 1
+        if(!is.infinite(delta_shift_end)){
+          delta_prop[dates >= fit$interventions$delta_adjustments$start_date &
+                       dates < delta_shift_end] <-
+            as.numeric(dates[dates >= fit$interventions$delta_adjustments$start_date &
+                               dates < delta_shift_end] - fit$interventions$delta_adjustments$start_date + 1)/
+            fit$interventions$delta_adjustments$shift_duration
+          delta_prop[dates >= delta_shift_end] <- 1
+        }
         #add the initial value too, doesn't matter what it is since its before any vaccines are given
         delta_prop <- c(0, delta_prop)
         #adjust efficacies for delta
@@ -123,12 +160,14 @@ covax_data <- lapply(iso3cs, function(iso3c){
       dates <- seq(start_date, as.Date(date), 1)
       #calculate delta adjustments
       delta_prop <- rep(0, length(dates))
-      delta_prop[dates >= fit$interventions$delta_adjustments$start_date &
-                   dates < delta_shift_end] <-
-        as.numeric(dates[dates >= fit$interventions$delta_adjustments$start_date &
-                           dates < delta_shift_end] - fit$interventions$delta_adjustments$start_date + 1)/
-        fit$interventions$delta_adjustments$shift_duration
-      delta_prop[dates >= delta_shift_end] <- 1
+      if(!is.infinite(delta_shift_end)) {
+        delta_prop[dates >= fit$interventions$delta_adjustments$start_date &
+                     dates < delta_shift_end] <-
+          as.numeric(dates[dates >= fit$interventions$delta_adjustments$start_date &
+                             dates < delta_shift_end] - fit$interventions$delta_adjustments$start_date + 1)/
+          fit$interventions$delta_adjustments$shift_duration
+        delta_prop[dates >= delta_shift_end] <- 1
+      }
       #add the initial value too, doesn't matter what it is since its before any vaccines are given
       delta_prop <- c(0, delta_prop)
       #calculate dose ratio changes
@@ -159,20 +198,34 @@ covax_data <- lapply(iso3cs, function(iso3c){
 })
 names(covax_data) <- iso3cs
 #convert to list of lists format
-counterfactuals <- lapply(iso3cs, function(iso3c){
-  list(
-    `No Vaccines` = list(max_vaccine = c(0,0),
-                         date_vaccine_change = as.Date(date) - 1,
-                         vaccine_efficacy_infection = c(0,0),
-                         vaccine_efficacy_disease = c(0,0)),
-    `No Vaccines-No Healthcare Surging` = list(max_vaccine = c(0,0),
-                         date_vaccine_change = as.Date(date) - 1,
-                         vaccine_efficacy_infection = c(0,0),
-                         vaccine_efficacy_disease = c(0,0),
-                         no_healthcare = TRUE),
-    `COVAX` = covax_data[[iso3c]]
-  )
-})
+
+if(direct){
+  counterfactuals <- lapply(iso3cs, function(iso3c){
+    list(
+      `No Vaccines` = list(max_vaccine = c(0,0),
+                           date_vaccine_change = as.Date(date) - 1,
+                           vaccine_efficacy_infection = c(0,0),
+                           vaccine_efficacy_disease = c(0,0)),
+      `No Vaccines-No Healthcare Surging` = list(max_vaccine = c(0,0),
+                                                 date_vaccine_change = as.Date(date) - 1,
+                                                 vaccine_efficacy_infection = c(0,0),
+                                                 vaccine_efficacy_disease = c(0,0),
+                                                 no_healthcare = TRUE),
+
+      `COVAX` = covax_data[[iso3c]]
+    )
+  })
+} else {
+  counterfactuals <- lapply(iso3cs, function(iso3c){
+    list(
+      `No Vaccines` = list(max_vaccine = c(0,0),
+                           date_vaccine_change = as.Date(date) - 1,
+                           vaccine_efficacy_infection = c(0,0),
+                           vaccine_efficacy_disease = c(0,0)),
+      `COVAX` = covax_data[[iso3c]]
+    )
+  })
+}
 names(counterfactuals) <- iso3cs
 #remove uneeded
 rm(covax_data)
@@ -193,15 +246,15 @@ walk(
       df <- suppressMessages(
         deaths_averted(out, draws = draws,
                        counterfactual = counterfactuals[[country_index]],
-                       reduce_age = FALSE,
-                       direct = TRUE)
+                       reduce_age = TRUE,
+                       direct = direct)
       )
 
       return(df)
     })
     #save each counterfactual seperately in temp files
     for(thisCounterfactual in
-        c("Baseline", "Baseline-Direct", "Baseline-No Healthcare Surging", "Baseline-Direct & No Healthcare Surging", names(counterfactuals[[1]]))
+        c(baseline_cf_names, names(counterfactuals[[1]]))
     ){
       temp_list <- list()
       for(j in seq_along(deaths_averted_list)){
@@ -225,7 +278,7 @@ unlink("temp", recursive = TRUE)
 
 #combine seperate counterfactual files
 walk(
-  c("Baseline", "Baseline-Direct", "Baseline-No Healthcare Surging", "Baseline-Direct & No Healthcare Surging", names(counterfactuals[[1]])),
+  c(baseline_cf_names, names(counterfactuals[[1]])),
   function(thisCounterfactual){
     #get names of files
     temp_files <- paste0(thisCounterfactual, map_dbl(groups, ~head(.x, 1)), ".Rds")
@@ -275,3 +328,8 @@ saveRDS(
     ),
   "counterfactuals.Rds"
 )
+
+#create empty files to avoid errors
+lapply(empty_cf_files, function(x){
+  saveRDS(NULL, paste0(x, ".Rds"))
+})
