@@ -68,6 +68,7 @@ parameters:
   seed:
     default: ""
   excess: ~
+  exclude_iso3cs: NA
 #
 # would declare a parameter called 'a' with a default value of 1, and
 # a parameter of b with no default.

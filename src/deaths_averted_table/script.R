@@ -3,15 +3,21 @@ if(!is.na(seed)){
   set.seed(seed)
 }
 
+if(excess){
+  cf <- c("No Vaccines", "COVAX")
+} else {
+  cf <- "No Vaccines"
+}
+
 ###Load data:
-table1_df_overall <- loadCounterfactualData(c("No Vaccines", "COVAX"),
+table1_df_overall <- loadCounterfactualData(cf,
                                             group_by = NULL,
                                             exclude_iso3cs = exclude_iso3cs)
-table1_df_income <- loadCounterfactualData(c("No Vaccines", "COVAX"),
+table1_df_income <- loadCounterfactualData(cf,
                                            group_by = "income_group",
                                            exclude_iso3cs = exclude_iso3cs)
 
-table1_df_who <- loadCounterfactualData(c("No Vaccines", "COVAX"),
+table1_df_who <- loadCounterfactualData(cf,
                                         group_by = "who_region",
                                         exclude_iso3cs = exclude_iso3cs)
 table1_df_vaccine <- readRDS(
@@ -142,19 +148,30 @@ table1 <- table1_df_overall %>%
     paste0("   ", ` `)
   )
   ) %>%
-  rowwise() %>%
-  mutate(`Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines"),
-         `Deaths Averted by Vaccinations\nPer 10k People` = writeText(.data, "No Vaccines_per_pop"),
-         `Deaths Averted by Vaccinations\nPer 10k Vaccines` = writeText(.data, "No Vaccines_per_vacc"),
-         `Deaths Reduced if COVAX Targets met` = writeText(.data, "COVAX"),
-         `Deaths Reduced if COVAX Targets met\nPer 10k People` = writeText(.data, "COVAX_per_pop"),
-         `Deaths Reduced if COVAX Targets met\nPer 10k Vaccines` = writeText(.data, "COVAX_per_vacc")) %>%
-  select(` `, `Deaths Averted by Vaccinations`,
-         `Deaths Averted by Vaccinations\nPer 10k People`,
-         `Deaths Averted by Vaccinations\nPer 10k Vaccines`,
-         `Deaths Reduced if COVAX Targets met`,
-         `Deaths Reduced if COVAX Targets met\nPer 10k People`,
-         `Deaths Reduced if COVAX Targets met\nPer 10k Vaccines`)
+  rowwise()
+if(excess){
+  table1 <- table1 %>%
+    mutate(`Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines"),
+           `Deaths Averted by Vaccinations\nPer 10k People` = writeText(.data, "No Vaccines_per_pop"),
+           `Deaths Averted by Vaccinations\nPer 10k Vaccines` = writeText(.data, "No Vaccines_per_vacc"),
+           `Deaths Reduced if COVAX Targets met` = writeText(.data, "COVAX"),
+           `Deaths Reduced if COVAX Targets met\nPer 10k People` = writeText(.data, "COVAX_per_pop"),
+           `Deaths Reduced if COVAX Targets met\nPer 10k Vaccines` = writeText(.data, "COVAX_per_vacc")) %>%
+    select(` `, `Deaths Averted by Vaccinations`,
+           `Deaths Averted by Vaccinations\nPer 10k People`,
+           `Deaths Averted by Vaccinations\nPer 10k Vaccines`,
+           `Deaths Reduced if COVAX Targets met`,
+           `Deaths Reduced if COVAX Targets met\nPer 10k People`,
+           `Deaths Reduced if COVAX Targets met\nPer 10k Vaccines`)
+} else {
+  table1 <- table1 %>%
+    mutate(`Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines"),
+           `Deaths Averted by Vaccinations\nPer 10k People` = writeText(.data, "No Vaccines_per_pop"),
+           `Deaths Averted by Vaccinations\nPer 10k Vaccines` = writeText(.data, "No Vaccines_per_vacc")) %>%
+    select(` `, `Deaths Averted by Vaccinations`,
+           `Deaths Averted by Vaccinations\nPer 10k People`,
+           `Deaths Averted by Vaccinations\nPer 10k Vaccines`)
+}
 
 
 saveRDS(table1, "averted_table.Rds")

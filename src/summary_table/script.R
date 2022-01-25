@@ -3,6 +3,12 @@ if(!seed == ""){
   set.seed(seed)
 }
 
+if(excess){
+  cf <- c("No Vaccines", "COVAX")
+} else {
+  cf <- "No Vaccines"
+}
+
 #vector of iso3cs of bad fits
 bad_fits <- c(
   "ARE", "IRQ", "SAU", "PER", "NAM"
@@ -10,18 +16,18 @@ bad_fits <- c(
 
 
 ###Load data:
-df_overall <- loadCounterfactualData(c("No Vaccines", "COVAX"),
-                                            group_by = NULL,
-                                     exclude_iso3cs = "CHN")
-df_income <- loadCounterfactualData(c("No Vaccines", "COVAX"),
-                                           group_by = "income_group",
-                                    exclude_iso3cs = "CHN")
-df_who <- loadCounterfactualData(c("No Vaccines", "COVAX"),
-                                        group_by = "who_region",
-                                 exclude_iso3cs = "CHN")
-df_ind <- loadCounterfactualData(c("No Vaccines", "COVAX"),
+df_overall <- loadCounterfactualData(cf,
+                                     group_by = NULL,
+                                     exclude_iso3cs = exclude_iso3cs)
+df_income <- loadCounterfactualData(cf,
+                                    group_by = "income_group",
+                                    exclude_iso3cs = exclude_iso3cs)
+df_who <- loadCounterfactualData(cf,
+                                 group_by = "who_region",
+                                 exclude_iso3cs = exclude_iso3cs)
+df_ind <- loadCounterfactualData(cf,
                                  group_by = "iso3c",
-                                 exclude_iso3cs = "CHN") %>%
+                                 exclude_iso3cs = exclude_iso3cs) %>%
   select(!country)
 
 df_vaccine <- readRDS(
@@ -140,8 +146,9 @@ df <- df_overall %>%
               names_from = counterfactual,
               values_from = contains("deaths"),
               names_glue = "{counterfactual}_{.value}") %>%
-  rowwise() %>%
-  mutate(#neaten
+  rowwise()
+if(excess){
+  df <- df %>% mutate(#neaten
     `Modelled Deaths` = writeText(.data, "No Vaccines_baseline_deaths"),
     `Averted Deaths` = writeText(.data, "No Vaccines_averted_deaths"),
     `Averted Deaths Per 10k People` = writeText(.data, "No Vaccines_per_pop_averted_deaths"),
@@ -151,34 +158,49 @@ df <- df_overall %>%
     `Reduction in Deaths if COVAX target met Per 10k People` = writeText(.data, "COVAX_per_pop_averted_deaths"),
     `Reduction in Deaths if COVAX target met Per 10k Vaccines` = writeText(.data, "COVAX_per_vacc_averted_deaths")
   ) %>%
-  select(` `, `Modelled Deaths`, `Averted Deaths`,
-         `Averted Deaths Per 10k People`, `Averted Deaths Per 10k Vaccines`,
-         `Modelled Deaths in COVAX Countries`,
-         `Reduction in Deaths if COVAX target met`,
-         `Reduction in Deaths if COVAX target met Per 10k People`,
-         `Reduction in Deaths if COVAX target met Per 10k Vaccines`
-         ) %>%
-  mutate(
-    #fill info for COVAX countries that didn't need more vaccines
-    country_in_covax = countrycode(` `, origin = "country.name", destination = "iso3c") %in% get_covax_iso3c(),
-    `Notes:` = if_else(
-      country_in_covax & `Modelled Deaths in COVAX Countries` == "",
-      "Country met targets for 2021, so COVAX counterfactual not modelled",
-      ""
-    ),
-    `Modelled Deaths in COVAX Countries` = if_else(
-      country_in_covax & `Modelled Deaths in COVAX Countries` == "",
-      `Modelled Deaths`,
-      `Modelled Deaths in COVAX Countries`
-    ),
-    #add note for poor fits
-    `Notes:` = if_else(
-      countrycode(` `, origin = "country.name", destination = "iso3c") %in% bad_fits,
-      paste0(`Notes:`, "\n", "Fit unable to recreate estimated deaths. Modelled deaths are lower than predicted excess mortality."),
-      `Notes:`
-    )
+    select(` `, `Modelled Deaths`, `Averted Deaths`,
+           `Averted Deaths Per 10k People`, `Averted Deaths Per 10k Vaccines`,
+           `Modelled Deaths in COVAX Countries`,
+           `Reduction in Deaths if COVAX target met`,
+           `Reduction in Deaths if COVAX target met Per 10k People`,
+           `Reduction in Deaths if COVAX target met Per 10k Vaccines`
+    ) %>%
+    mutate(
+      #fill info for COVAX countries that didn't need more vaccines
+      country_in_covax = countrycode(` `, origin = "country.name", destination = "iso3c") %in% get_covax_iso3c(),
+      `Notes:` = if_else(
+        country_in_covax & `Modelled Deaths in COVAX Countries` == "",
+        "Country met targets for 2021, so COVAX counterfactual not modelled",
+        ""
+      ),
+      `Modelled Deaths in COVAX Countries` = if_else(
+        country_in_covax & `Modelled Deaths in COVAX Countries` == "",
+        `Modelled Deaths`,
+        `Modelled Deaths in COVAX Countries`
+      )
+    ) %>%
+    select(!country_in_covax)
+} else {
+  df <- df %>% mutate(#neaten
+    `Modelled Deaths` = writeText(.data, "No Vaccines_baseline_deaths"),
+    `Averted Deaths` = writeText(.data, "No Vaccines_averted_deaths"),
+    `Averted Deaths Per 10k People` = writeText(.data, "No Vaccines_per_pop_averted_deaths"),
+    `Averted Deaths Per 10k Vaccines` = writeText(.data, "No Vaccines_per_vacc_averted_deaths")
   ) %>%
-  select(!country_in_covax)
+    select(` `, `Modelled Deaths`, `Averted Deaths`,
+           `Averted Deaths Per 10k People`, `Averted Deaths Per 10k Vaccines`
+    ) %>%
+    mutate(`Notes:` = "")
+}
+#add note for poor fits
+df <- df %>%
+  ungroup() %>%
+  mutate(`Notes:` = if_else(
+  countrycode(` `, origin = "country.name", destination = "iso3c") %in% bad_fits,
+  paste0(`Notes:`, "\n", "Fit unable to recreate estimated deaths. Modelled deaths are lower than predicted excess mortality."),
+  `Notes:`
+)
+)
 
 
 readr::write_csv(df, "summary_table.csv")

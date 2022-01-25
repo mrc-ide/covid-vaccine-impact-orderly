@@ -1,3 +1,8 @@
+if(!is.na(seed)){
+  set.seed(seed)
+}
+
+
 ## Generate Data
 pmcmc_pars_list <- list(
   # three peaks, large, small, delta

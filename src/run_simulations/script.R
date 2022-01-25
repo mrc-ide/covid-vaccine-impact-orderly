@@ -254,7 +254,7 @@ walk(
       #shorten data to current date
       df <- df %>%
         rename(obs_date=date) %>%
-        filter(date <= date) %>%
+        filter(obs_date <= date) %>%
         rename(date = obs_date)
       return(df)
     })

@@ -75,7 +75,9 @@ artefacts:
 # would declare a parameter called 'a' with a default value of 1, and
 # a parameter of b with no default.
 #
-# parameters:
+parameters:
+  seed:
+    default: NA
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
