@@ -95,6 +95,7 @@ parameters:
 packages:
   - dplyr
   - orderly
+  - purrr
   - squire.page
 
 
