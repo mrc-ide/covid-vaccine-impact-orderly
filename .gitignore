@@ -3,9 +3,9 @@
 .RData
 .Ruserdata
 data
-#archive
+archive
 draft
-#*.sqlite
+*.sqlite
 .Renviron
 .lintr
 orderly_envir.yml
