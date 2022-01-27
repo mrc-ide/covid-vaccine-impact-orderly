@@ -71,4 +71,6 @@ ggsave("reported_excess_comparison.png", reported_comparison$total, width = 8, h
 ggsave("reported_excess_comparison.pdf", reported_comparison$total, width = 8, height = 5)
 
 #hospital direct effects
-#WIP for now
+hospital_effects <- readRDS("hospital_effects.Rds")
+ggsave("hospital_direct_indirect.png", hospital_effects, width = 10, height = 5)
+ggsave("hospital_direct_indirect.pdf", hospital_effects,  width = 10, height = 5)

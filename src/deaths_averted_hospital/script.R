@@ -13,11 +13,6 @@ df_overall <- loadCounterfactualData(c("No Vaccines", "Baseline-Direct",
 
 
 ###Figure 1 daily deaths over time:
-indirect_col <- "#d62728"#"firebrick1"
-indirect_hosp_col <- "firebrick1"
-direct_hosp_col <- "#17becf"#"deepskyblue3"
-direct_col <- "#98df8a"#"yellow"
-
 #sort data
 df_sorted <- df_overall %>%
   select(date, counterfactual, deaths_avg) %>%
@@ -28,47 +23,79 @@ df_sorted <- df_overall %>%
           mutate(counterfactual = "Baseline")) %>%
   pivot_wider(id_cols =date, names_from = counterfactual, values_from = deaths_avg)
 
-plot(df_sorted$`No Vaccines-No Healthcare Surging`, type = "l")
-lines(df_sorted$`No Vaccines`)
 #calculate levels, need to isolate vaccine impacts:
-df_sorted %>%
+df_averted <- df_sorted %>%
   transmute(
     date = date,
-    total_averted = `No Vaccines` - Baseline,
-    hosp_caused = Baseline - `Baseline-No Healthcare Surging`,
-    averted_no_hosp = `No Vaccines-No Healthcare Surging` - `Baseline-No Healthcare Surging`,
-    averted_by_hosp_reduction = total_averted
+    averted_reduced_burden_hospital_max = `No Vaccines` - `Baseline`,
+
+    averted_reduced_burden_hospital_min = `No Vaccines-No Healthcare Surging` - `Baseline-No Healthcare Surging`,
+    averted_indirect_max = averted_reduced_burden_hospital_min,
+    averted_indirect_min = `No Vaccines-No Healthcare Surging` - `Baseline-Direct & No Healthcare Surging`,
+    averted_direct_max = averted_indirect_min,
+    averted_direct_min = rep(0, length(averted_direct_max))
   ) %>%
-  ggplot() +
-  geom_line(aes(x = date, y = total_averted)) +
-  geom_line(aes(x = date, y = averted_no_hosp))
+  pivot_longer(cols = contains("averted"), names_to = c("mechanism", "bound"),
+               names_sep = "_(?![\\s\\S]*_)") %>%
+  pivot_wider(id_cols = c(date, mechanism), names_from = bound, values_from = value)
 
-fig <- ggplot(df_sorted) +
-  geom_line(aes(x = date, y = deaths_avg, colour = counterfactual))
+df_averted <- df_sorted %>%
+  transmute(
+    date = date,
+    averted_reduced_burden_hospital_indirect_max = `No Vaccines` - `Baseline`, #total deaths averted
+    averted_reduced_burden_hospital_direct_min = `No Vaccines-No Healthcare Surging` - `Baseline-No Healthcare Surging`, #these two bound deaths averted through hosptial admission reductions
+    #calculate deaths averted by direct and indirect effects in the absence of hospital burden
+    averted_indirect_max = averted_reduced_burden_hospital_direct_min,
+    averted_indirect_min = `No Vaccines-No Healthcare Surging` - `Baseline-Direct & No Healthcare Surging`,
+    averted_direct_max = averted_indirect_min,
+    averted_direct_min = rep(0, length(averted_direct_max)),
+    #split deaths averted by reduced burden into direct/indirect
+    averted_reduced_burden_hospital_indirect_min = (`No Vaccines` - `Baseline-Direct`) - #deaths averted by direct with both hospital reduction and direct
+      averted_direct_max + #subtract the deaths averted with no reduction in burden
+      averted_reduced_burden_hospital_direct_min, #scale up so area is correct
+    averted_reduced_burden_hospital_direct_max = averted_reduced_burden_hospital_indirect_min,
+  ) %>%
+  pivot_longer(cols = contains("averted"), names_to = c("mechanism", "bound"),
+               names_sep = "_(?![\\s\\S]*_)") %>%
+  pivot_wider(id_cols = c(date, mechanism), names_from = bound, values_from = value) %>%
+  #rename and fitler for the plot
+  mutate(
+    mechanism = case_when(
+      # mechanism == "averted_direct" ~ "Protection against Disease",
+      # mechanism == "averted_indirect" ~ "Protection against Transmission and Infection",
+      # mechanism == "averted_reduced_burden_hospital_direct" ~
+      #   "Reduction in healthcare burden\n(from Protection against Disease)",
+      # mechanism == "averted_reduced_burden_hospital_indirect" ~
+      #   "Reduction in healthcare burden\n(from Protection against Transmission and Infection)"
+      mechanism == "averted_direct" ~ "Direct Protection",
+      mechanism == "averted_indirect" ~ "Indirect Protection",
+      mechanism == "averted_reduced_burden_hospital_direct" ~
+        "Reduced Healthcare Burden\n(Direct)",
+      mechanism == "averted_reduced_burden_hospital_indirect" ~
+        "Reduced Healthcare Burden\n(Indirect)"
+    )
+  ) %>%
+  filter(date > "2021-01-01")
 
-# fig <- ggplot(data = df_overall %>%
-#                    filter(date > "2021-01-1",
-#                           counterfactual == "No Vaccines"),
-#                  aes(x = date)) +
-#   geom_area(
-#     data = fig1_df_income %>%
-#       filter(date > "2021-01-01"),
-#     aes(x = date, y = averted_deaths_avg, fill = income_group),
-#     alpha = 1
-#   ) +
-#   #geom_line(aes(y = averted_deaths_avg),
-#   #          size = 1, colour = averted_col) +
-#   #geom_ribbon(aes(ymin = averted_deaths_025,
-#   #                ymax = averted_deaths_975),
-#   #            alpha = 0.55,
-#   #            fill = averted_col) +
-#   labs(
-#     x = "Date",
-#     y = "Deaths Averted by Vaccinations per day",
-#     fill = "Income Group:"
-#   ) +
-#   ylim(ggplot_build(fig1_1)$layout$panel_scales_y[[1]]$range$range - c(1,0)) +
-#   theme_pubr() +
-#   theme(legend.position = c(0.25, 0.8))
+
+
+
+#fig <-
+  ggplot(df_averted,
+              aes(x = date, ymin = min, ymax = max, fill = mechanism)) +
+  geom_ribbon(colour = "black") +
+  labs(
+    x = "Date",
+    y = "Median Deaths Averted by Vaccinations per day",
+    fill = "Deaths Averted By:"
+  ) +
+  theme_pubr() +
+  scale_fill_manual(values =
+                      c(
+                        "Direct Protection" = "#FF9966BF", #17becf
+                        "Indirect Protection" = "#3399CCBF", #98df8a
+                        "Reduced Healthcare Burden\n(Direct)" = "#FF996640",
+                        "Reduced Healthcare Burden\n(Indirect)" = "#3399CC40"
+                      ))
 
 saveRDS(fig, "hospital_effects.Rds")
