@@ -218,7 +218,8 @@ that it is simple to modify dimensions etc.
 generate_numbers_id <- orderly::orderly_run("generate_numbers",
                                          parameters = list(
                                              date = date,
-                                             seed = 8006646
+                                             seed = 8006646,
+                                             exclude_iso3cs = exclude_iso3cs
                                            ),
                                          echo = FALSE)
 orderly::orderly_commit(generate_numbers_id)
