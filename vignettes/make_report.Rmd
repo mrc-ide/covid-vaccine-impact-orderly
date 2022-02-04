@@ -356,6 +356,14 @@ deaths_averted_hospital_id <- orderly::orderly_run("deaths_averted_hospital",
                                              exclude_iso3cs = exclude_iso3cs
                                            ), echo = FALSE)
 orderly::orderly_commit(deaths_averted_hospital_id)
+
+deaths_averted_hospital_numbers_id <- orderly::orderly_run("deaths_averted_hospital_numbers",
+                                           parameters = list(
+                                             date = date,
+                                             seed = 160100,
+                                             exclude_iso3cs = exclude_iso3cs
+                                           ), echo = FALSE)
+orderly::orderly_commit(deaths_averted_hospital_numbers_id)
 ```
 
 A plot looking at deaths averted by reduction in hospital and ICU burden.

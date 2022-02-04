@@ -221,7 +221,9 @@ if(direct){
   counterfactuals <- lapply(iso3cs, function(iso3c){
     list(
       `No Vaccines` = list(max_vaccine = c(0,0),
+                           dose_ratio = 0,
                            date_vaccine_change = as.Date(date) - 1,
+                           date_vaccine_efficacy = as.Date(date) - 1,
                            vaccine_efficacy_infection = c(0,0),
                            vaccine_efficacy_disease = c(0,0))
     )
