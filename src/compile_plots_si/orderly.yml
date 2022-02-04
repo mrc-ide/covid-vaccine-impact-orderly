@@ -54,6 +54,8 @@ artefacts:
         - reported_excess_comparison.pdf
         - hospital_direct_indirect.png
         - hospital_direct_indirect.pdf
+        - delta_curves.png
+        - delta_curves.pdf
 
 
 # An optional name to describe the report in more detail than its
@@ -97,6 +99,8 @@ packages:
   - ggplot2
   - ggpubr
   - forcats
+  - dplyr
+  - lubridate
 
 # Source files, in addition to the script.  Typically these will
 # contain function definitions.  These will be sourced after loading
