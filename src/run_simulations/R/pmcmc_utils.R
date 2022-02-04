@@ -276,8 +276,12 @@ update_counterfactual <- function(out, counterfactual){
     counterfactual$date_vaccine_change
   out$pmcmc_results$inputs$interventions$date_vaccine_efficacy_infection_change <-
     counterfactual$date_vaccine_change
+  out$pmcmc_results$inputs$interventions$date_vaccine_efficacy <-
+    counterfactual$date_vaccine_change
   out$pmcmc_results$inputs$interventions$max_vaccine <-
     counterfactual$max_vaccine
+  out$pmcmc_results$inputs$interventions$dose_ratio <-
+    counterfactual$dose_ratio
   out$pmcmc_results$inputs$interventions$vaccine_efficacy_disease <-
     lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)})
   out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection <-
@@ -303,8 +307,12 @@ update_counterfactual <- function(out, counterfactual){
     counterfactual$date_vaccine_change
   out$interventions$date_vaccine_efficacy_infection_change <-
     counterfactual$date_vaccine_change
+  out$interventions$date_vaccine_efficacy <-
+    counterfactual$date_vaccine_change
   out$interventions$max_vaccine <-
     counterfactual$max_vaccine
+  out$interventions$dose_ratio <-
+    counterfactual$dose_ratio
   out$interventions$vaccine_efficacy_disease <-
     lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)})
   out$interventions$vaccine_efficacy_infection <-

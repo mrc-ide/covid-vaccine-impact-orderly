@@ -92,6 +92,7 @@ parameters:
 packages:
   - dplyr
   - purrr
+  - tidyr
   - ggplot2
   - ggpubr
   - squire.page

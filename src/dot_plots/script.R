@@ -107,7 +107,7 @@ alpha <- 0.75
 
 fig2_vacc <- ggplot(fig2_df_extra_data %>%
                       mutate(label =
-                               log(averted_deaths_avg) <= log(vaccinations)*1 -7.8
+                               log(averted_deaths_avg) <= log(vaccinations)*0.98 -7.8
                                ) %>%
                       filter(vaccinations > 0 & averted_deaths_avg > 0),
                     aes(x = vaccinations,

@@ -11,14 +11,14 @@ iso3cs <- intersect(iso3c_excess, iso3c_reported)
 iso3cs_drop_reported <- c(setdiff(iso3c_reported, iso3cs), exclude_iso3cs)
 iso3cs_drop_excess <- c(setdiff(iso3c_excess, iso3cs), exclude_iso3cs)
 #we'll need to rename the baseline file for each version
-file.copy("Baseline_reported.Rds", "Baseline.Rds")
+file.copy("Baseline_reported.Rds", "Baseline.Rds", overwrite = TRUE)
 df_reported_total <- loadCounterfactualData(c("No Vaccines_reported"),
                                             group_by = NULL,
                                             exclude_iso3cs = iso3cs_drop_reported)
 df_reported_income <- loadCounterfactualData(c("No Vaccines_reported"),
                                            group_by = "income_group",
                                            exclude_iso3cs = iso3cs_drop_reported)
-file.copy("Baseline_excess.Rds", "Baseline.Rds")
+file.copy("Baseline_excess.Rds", "Baseline.Rds", overwrite = TRUE)
 df_excess_total <- loadCounterfactualData(c("No Vaccines_excess"),
                                             group_by = NULL,
                                             exclude_iso3cs = iso3cs_drop_excess)

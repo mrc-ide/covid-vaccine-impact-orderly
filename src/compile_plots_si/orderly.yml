@@ -52,6 +52,10 @@ artefacts:
         - reported_averted_deaths_table.csv
         - reported_excess_comparison.png
         - reported_excess_comparison.pdf
+        - hospital_direct_indirect.png
+        - hospital_direct_indirect.pdf
+        - delta_curves.png
+        - delta_curves.pdf
 
 
 # An optional name to describe the report in more detail than its
@@ -94,6 +98,9 @@ parameters:
 packages:
   - ggplot2
   - ggpubr
+  - forcats
+  - dplyr
+  - lubridate
 
 # Source files, in addition to the script.  Typically these will
 # contain function definitions.  These will be sourced after loading
@@ -159,8 +166,7 @@ depends:
     id: latest(parameter:date == date)
     use:
       reported_excess_comparison.Rds: reported_excess_comparison.Rds
-
-  # deaths_averted_hospital:
-  #   id: latest(parameter:date == date)
-  #   use:
-  #     hospital_effects.Rds: hospital_effects.Rds
+  deaths_averted_hospital:
+    id: latest(parameter:date == date)
+    use:
+      hospital_effects.Rds: hospital_effects.Rds
