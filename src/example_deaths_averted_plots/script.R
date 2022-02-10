@@ -6,9 +6,9 @@ if(!is.na(seed)){
 iso3cs <- readRDS("counterfactuals.Rds") %>%
   pull(iso3c)
 
-example_iso3cs <- c("GBR", "USA", "IND")
+example_iso3cs <- c("USA")
 
-exclude_iso3cs <- c(setdiff(iso3cs, example_iso3cs), "PRK")
+exclude_iso3cs <- c(setdiff(iso3cs, example_iso3cs))
 
 ###Load data:
 df <- loadCounterfactualData(c("No Vaccines", "Baseline_direct"),
