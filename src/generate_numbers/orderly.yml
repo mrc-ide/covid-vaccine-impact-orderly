@@ -148,3 +148,4 @@ depends:
       No Vaccines.Rds: No Vaccines.Rds
       Baseline-Direct.Rds: Baseline-Direct.Rds
       Baseline.Rds: Baseline.Rds
+      counterfactuals.Rds: counterfactuals.Rds

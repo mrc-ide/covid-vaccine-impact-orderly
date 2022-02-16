@@ -95,6 +95,7 @@ packages:
   - gridExtra
   - squire.page
   - tidyr
+  - purrr
 
 
 # Source files, in addition to the script.  Typically these will
@@ -143,6 +144,10 @@ sources:
 #           other-data.csv: data.csv
 #
 depends:
+  fetch_fits:
+    id: latest(parameter:date == date && parameter:excess == excess)
+    use:
+      countryfits.Rds: countryfits.Rds
   run_simulations:
     id: latest(parameter:date == date && parameter:excess == excess)
     use:

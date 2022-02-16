@@ -20,11 +20,16 @@ table1_df_income <- loadCounterfactualData(cf,
 table1_df_who <- loadCounterfactualData(cf,
                                         group_by = "who_region",
                                         exclude_iso3cs = exclude_iso3cs)
+#total vaccine doses
 table1_df_vaccine <- readRDS(
   "counterfactuals.Rds"
 )%>%
   rename(vaccines = `Baseline (Total Vaccines)`) %>%
   select(iso3c, vaccines) %>%
+  left_join(#number of people with 1+ dose
+    map_dfr(readRDS("countryfits.Rds"), ~tibble(vaccinated = sum(.x$interventions$max_vaccine)),
+            .id = "iso3c")
+  ) %>%
   filter(!(iso3c %in% exclude_iso3cs)) %>%
   left_join(
     squire::population %>%
@@ -33,8 +38,29 @@ table1_df_vaccine <- readRDS(
         population = sum(n)
       )
   )
-table1_df_vaccine_covax <- table1_df_vaccine %>%
-  filter(iso3c %in% get_covax_iso3c())
+#add new covax coverage if target met
+if(excess){
+  table1_df_vaccine_covax <- table1_df_vaccine %>%
+    #vaccines and population does not matter as this is not used
+    left_join(
+      readRDS(
+        "counterfactuals.Rds"
+      ) %>%
+        select(iso3c, COVAX)
+    ) %>%
+    #update
+    mutate(
+      vaccinated = if_else(
+        is.na(COVAX),
+        vaccinated,
+        COVAX
+      )
+    ) %>%
+    select(!COVAX)
+} else {
+  table1_df_vaccine_covax <- table1_df_vaccine
+  #placeholder not used
+}
 
 table1_df_vaccine <- table1_df_vaccine %>%
   mutate(counterfactual = "No Vaccines") %>%
@@ -67,6 +93,7 @@ table1_df_vaccine <- table1_df_vaccine %>%
   group_by(ind, counterfactual) %>%
   summarise(
     vaccines = sum(vaccines),
+    vaccinated = sum(vaccinated),
     population = sum(population),
     .groups = "keep"
   )
@@ -88,6 +115,10 @@ writeText <- function(row, name){
       ")"
     )
   }
+}
+format_coverage <- function(x){
+  if_else(is.na(x), "", paste0(as.character(signif(x * 100, digits = 3)),
+         "%"))
 }
 
 ###table 1 overall/summary counts:
@@ -122,7 +153,8 @@ table1 <- table1_df_overall %>%
       averted_deaths_975
     )
   ) %>%
-  select(` `, counterfactual, averted_deaths_025, averted_deaths_avg, averted_deaths_975) %>%
+  select(` `, counterfactual, averted_deaths_025, averted_deaths_avg, averted_deaths_975,
+         baseline_deaths_avg, baseline_deaths_025, baseline_deaths_975) %>%
   #Add population and vaccine data
   left_join(
     table1_df_vaccine %>%
@@ -135,12 +167,13 @@ table1 <- table1_df_overall %>%
   ) %>%
   mutate(across(.col = starts_with("_"), list(
     per_pop = ~ .x/population * 10000,
+    #calculate averted per vaccine dose
     per_vacc = ~ .x/vaccines * 10000
   ),
   .names = "_{.fn}{.col}")) %>%
   #pivot to extra columns
   pivot_wider(id_cols = ` `, names_from = counterfactual,
-              values_from = contains("_"), names_glue = "{counterfactual}{.value}") %>%
+              values_from = c(vaccinated, population, contains("_")), names_glue = "{counterfactual}{.value}") %>%
   mutate(
   ` ` = if_else(
     ` ` %in% c("by Income-Group:", "by WHO-Region:", "Worldwide"),
@@ -151,26 +184,42 @@ table1 <- table1_df_overall %>%
   rowwise()
 if(excess){
   table1 <- table1 %>%
-    mutate(`Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines"),
+    mutate(`Total Deaths,\nwith vaccinations` = writeText(.data, "No Vaccinesbaseline_deaths"),
+           `Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines"),
            `Deaths Averted by Vaccinations\nPer 10k People` = writeText(.data, "No Vaccines_per_pop"),
            `Deaths Averted by Vaccinations\nPer 10k Vaccines` = writeText(.data, "No Vaccines_per_vacc"),
            `Deaths Reduced if COVAX Targets met` = writeText(.data, "COVAX"),
-           `Deaths Reduced if COVAX Targets met\nPer 10k People` = writeText(.data, "COVAX_per_pop"),
-           `Deaths Reduced if COVAX Targets met\nPer 10k Vaccines` = writeText(.data, "COVAX_per_vacc")) %>%
-    select(` `, `Deaths Averted by Vaccinations`,
+           #calculate coverage of 1+dose
+           `Vaccination Coverage` = format_coverage(`No Vaccinesvaccinated`/`No Vaccinespopulation`),
+           `Increase in Vaccination Coverage\nif COVAX targets met` = format_coverage((`COVAXvaccinated`/`COVAXpopulation`)/
+                                                                                        (`No Vaccinesvaccinated`/`No Vaccinespopulation`) -
+                                                                                        1)) %>%
+    select(` `,`Total Deaths,\nwith vaccinations`, `Deaths Averted by Vaccinations`,
            `Deaths Averted by Vaccinations\nPer 10k People`,
            `Deaths Averted by Vaccinations\nPer 10k Vaccines`,
+           `Vaccination Coverage`,
            `Deaths Reduced if COVAX Targets met`,
-           `Deaths Reduced if COVAX Targets met\nPer 10k People`,
-           `Deaths Reduced if COVAX Targets met\nPer 10k Vaccines`)
+           `Increase in Vaccination Coverage\nif COVAX targets met`) %>%
+    #correct the coverage increase in HICs for COVAX
+    mutate(
+      `Increase in Vaccination Coverage\nif COVAX targets met` = if_else(
+        ` ` == "   HIC" & `Increase in Vaccination Coverage\nif COVAX targets met` == "",
+        "0%",
+        `Increase in Vaccination Coverage\nif COVAX targets met`
+      )
+    )
 } else {
   table1 <- table1 %>%
-    mutate(`Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines"),
+    mutate(`Total Deaths,\nwith vaccinations` = writeText(.data, "No Vaccinesbaseline_deaths"),
+           `Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines"),
            `Deaths Averted by Vaccinations\nPer 10k People` = writeText(.data, "No Vaccines_per_pop"),
-           `Deaths Averted by Vaccinations\nPer 10k Vaccines` = writeText(.data, "No Vaccines_per_vacc")) %>%
-    select(` `, `Deaths Averted by Vaccinations`,
+           `Deaths Averted by Vaccinations\nPer 10k Vaccines` = writeText(.data, "No Vaccines_per_vacc"),
+           #calculate coverage of 1+dose
+           `Vaccination Coverage` = format_coverage(`No Vaccinesvaccinated`/`No Vaccinespopulation`)) %>%
+    select(` `, `Total Deaths,\nwith vaccinations`, `Deaths Averted by Vaccinations`,
            `Deaths Averted by Vaccinations\nPer 10k People`,
-           `Deaths Averted by Vaccinations\nPer 10k Vaccines`)
+           `Deaths Averted by Vaccinations\nPer 10k Vaccines`,
+           `Vaccination Coverage`)
 }
 
 
