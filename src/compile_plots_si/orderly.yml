@@ -54,8 +54,6 @@ artefacts:
         - reported_excess_comparison.pdf
         - hospital_direct_indirect.png
         - hospital_direct_indirect.pdf
-        - delta_curves.png
-        - delta_curves.pdf
 
 
 # An optional name to describe the report in more detail than its
@@ -152,12 +150,10 @@ depends:
     id: latest
     use:
       usa_res.Rds: res.Rds
-      usa_reff_plot.Rds: reff_plot.Rds
   delta_toy_example_india:
     id: latest
     use:
       india_res.Rds: res.Rds
-      india_reff_plot.Rds: reff_plot.Rds
   deaths_averted_table:
     id: latest(parameter:date == date && parameter:excess == FALSE)
     use:

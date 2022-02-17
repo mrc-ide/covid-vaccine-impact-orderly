@@ -48,8 +48,8 @@ pmcmc_pars_list <- append(
     baseline_max_vaccine = 0
   )
 )
-# regimen, starts in Jan 2021 should hit max by dec-2021
-pmcmc_pars_list$date_vaccine_change <- as_date("2021-01-01")
+# regimen, starts in at first date should hit max by dec-2021
+pmcmc_pars_list$date_vaccine_change <- min(pmcmc_pars_list$data$week_start)
 pmcmc_pars_list$max_vaccine <- sum(
   pmcmc_pars_list$population * tail(pmcmc_pars_list$vaccine_coverage_mat, 1)
 ) /
@@ -80,7 +80,7 @@ pmcmc_pars_list <- append(
     pars_obs = list(
       phi_cases = 1, k_cases = 2, phi_death = 1, k_death = 7, exp_noise = 1e07,
       k_death_cumulative = 40,
-      likelihood = function(model_deaths, data_deaths) {
+      likelihood = function(model_deaths, data_deaths, pars_obs) {
         phi_death <- 1
         k_death <- 7
         exp_noise <- 1e07
@@ -340,4 +340,12 @@ results_df <- do.call(
   lapply(model_fits, function(x){x$result})
 )
 saveRDS(results_df, "res.Rds")
-
+#plot of the deaths
+saveRDS(ggplot(pmcmc_pars_list$data, aes(week_start, (deaths/sum(pmcmc_pars_list$population))*1e5)) +
+          geomtextpath::geom_textvline(label = "Delta Introduction",
+                                       xintercept = unique(delta_characteristics$start_date),
+                                       hjust = 0.2,
+                                       linetype = 2) +
+          geom_step(color = "red") +
+          theme_bw() + ylab("Weekly Deaths per 100,000\n") + xlab("")  +
+          ggpubr::theme_pubr(), "death_curve.Rds")
