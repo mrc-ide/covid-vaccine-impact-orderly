@@ -68,6 +68,9 @@ artefacts:
   - data:
       description: Counterfactual simulation if COVAX was on target
       filenames: COVAX.Rds
+  - data:
+      description: Counterfactual simulation if WHO goals met
+      filenames: WHO.Rds
 
 # An optional name to describe the report in more detail than its
 # directory name (which must be short) but less detail than

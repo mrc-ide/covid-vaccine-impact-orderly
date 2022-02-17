@@ -182,22 +182,6 @@ producing the report.
 
 # Outputs
 
-## GAVI CSV File
-
-```{r, echo=TRUE, eval=FALSE}
-summary_table_id <- orderly::orderly_run("summary_table",
-                                         parameters = list(
-                                             date = date,
-                                             excess = TRUE,
-                                             seed = 1001332,
-                                             exclude_iso3cs = exclude_iso3cs
-                                           ),
-                                         echo = FALSE)
-orderly::orderly_commit(summary_table_id)
-```
-
-This is also used for the country specific outputs csv file.
-
 ## Compile Plots to Images
 
 ```{r, echo=TRUE, eval=FALSE}
@@ -285,20 +269,6 @@ orderly::orderly_commit(deaths_averted_table_id)
 ```
 
 Generate deaths averted table.
-
-```{r, echo=TRUE, eval=FALSE}
-summary_table_id <- orderly::orderly_run("summary_table",
-                                         parameters = list(
-                                             date = date,
-                                             excess = FALSE,
-                                             seed = 1001332,
-                                             exclude_iso3cs = exclude_iso3cs
-                                           ),
-                                         echo = FALSE)
-orderly::orderly_commit(summary_table_id)
-```
-
-GAVI table which we'll use for the country specific data.
 
 ```{r, echo=TRUE, eval=FALSE}
 fitting_plots_id <- orderly::orderly_run("fitting_plots",

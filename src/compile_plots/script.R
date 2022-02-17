@@ -14,35 +14,12 @@ ggsave("figure2.pdf", global_deaths_averted,
 
 #deaths averted table
 averted_table <- readRDS("averted_table.Rds")
-#modify the covax stuff
-get_value <- function(var, position){
-  as.numeric(gsub(",", "", unlist(lapply(strsplit(var, "( \\()|( - )|\\)"), function(x){
-    x[position]
-  }))))
-}
-averted_table <- averted_table %>%
-  rename(`Additional Deaths Averted if COVAX Targets met\nTotal` = `Deaths Reduced if COVAX Targets met`,
-         `Deaths Averted by Vaccinations\nTotal` = `Deaths Averted by Vaccinations`) %>%
-  mutate(`Additional Deaths Averted if COVAX Targets met\n% Additional` =
-           if_else(
-             `Additional Deaths Averted if COVAX Targets met\nTotal` == "",
-             "",
-             paste0(
-               signif(get_value(`Additional Deaths Averted if COVAX Targets met\nTotal`, 1)/
-                 get_value(`Deaths Averted by Vaccinations\nTotal`, 1) * 100, digits = 3),
-               " (",
-               signif(get_value(`Additional Deaths Averted if COVAX Targets met\nTotal`, 2)/
-                 get_value(`Deaths Averted by Vaccinations\nTotal`, 1) * 100, digits = 3),
-               ", ",
-               signif(get_value(`Additional Deaths Averted if COVAX Targets met\nTotal`, 3)/
-                 get_value(`Deaths Averted by Vaccinations\nTotal`, 1) * 100, digits = 3),
-               ")"
-             )
-           )) %>%
-  select(!contains("Deaths Reduced"))
 write.csv(
-  averted_table,
-  "table1.csv")
+  averted_table[[1]],
+  "table2.csv")
+write.csv(
+  averted_table[[2]],
+  "table3.csv")
 
 #world map
 deaths_averted_map <- readRDS("deaths_averted_map.Rds")

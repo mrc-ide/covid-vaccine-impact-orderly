@@ -46,7 +46,9 @@ script: script.R
 artefacts:
   - staticgraph:
       description: A table of deaths averted by vaccinations
-      filenames: averted_table.Rds
+      filenames:
+        - averted_table.Rds
+        - summary_table.csv
 
 # An optional name to describe the report in more detail than its
 # directory name (which must be short) but less detail than
@@ -96,6 +98,7 @@ packages:
   - squire.page
   - tidyr
   - purrr
+  - readr
 
 
 # Source files, in addition to the script.  Typically these will
@@ -155,3 +158,4 @@ depends:
       Baseline.Rds: Baseline.Rds
       counterfactuals.Rds: counterfactuals.Rds
       COVAX.Rds: COVAX.Rds
+      WHO.Rds: WHO.Rds
