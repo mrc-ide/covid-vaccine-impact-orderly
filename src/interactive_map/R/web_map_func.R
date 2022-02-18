@@ -98,7 +98,11 @@ plot_layered_map <- function(data, counterfactual, measure, adjust){
                  lng2 = 177.260162,
                  lat2 = 69.234484)
   #derive variable names
-  comparison <- paste0("Counterfactual ", measure, " compared to Baseline")
+  if(counterfactual == "No Vaccines"){
+    comparison <- paste0(measure, " Averted")
+  } else {
+    comparison <- paste0("Additional ", measure, " Averted")
+  }
   baseline <- paste0("Baseline ", measure)
   simulated <- paste0("Counterfactual ", measure)
   vaccines <- paste0("Vaccinated People (1 or 2 doses) (Counterfactual)")

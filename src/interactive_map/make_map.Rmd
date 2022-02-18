@@ -11,8 +11,9 @@ output:
 #prepare data
 
 #Load data and summarise, one cf at a time to work around RAM limits
-sum_df <- loadCounterfactualData(c("No Vaccines"),
-                         group_by = "iso3c")
+sum_df <- loadCounterfactualData(c("No Vaccines", "WHO", "COVAX"),
+                         group_by = "iso3c",
+                         exclude_iso3cs = exclude_iso3cs)
 
 ##For No vaccines we must adjust for potential floating point/rounding errors
 #causing a negative deaths averted
@@ -74,10 +75,14 @@ final_df <- world %>%
          `Baseline Vaccines`, `Vaccinated People (1 or 2 doses) (Counterfactual)`, geometry) %>%
   rename(Country = country,
          `Counterfactual Deaths` = deaths_avg,
-         `Counterfactual Infections` = infections_avg, `Baseline Deaths` = baseline_deaths_avg,
+         `Counterfactual Infections` = infections_avg, 
+         `Baseline Deaths` = baseline_deaths_avg,
          `Baseline Infections` = baseline_infections_avg,
-         `Counterfactual Deaths compared to Baseline` = averted_deaths_avg,
-         `Counterfactual Infections compared to Baseline` = averted_infections_avg) %>%
+         `Deaths Averted` = averted_deaths_avg,
+         `Infections Averted` = averted_infections_avg) %>%
+  #sort out negatives for COVAX and WO
+  mutate(`Additional Deaths Averted` = -`Deaths Averted`,
+         `Additional Infections Averted`  = -`Infections Averted` ) %>% 
   #expand to get per population/vaccines
   mutate(`Baseline Vaccines` = if_else(`Baseline Vaccines` == 0,
                                        as.numeric(NA),
@@ -86,8 +91,10 @@ final_df <- world %>%
                   "Counterfactual Infections",
                   "Baseline Deaths",
                   "Baseline Infections",
-                  "Counterfactual Deaths compared to Baseline",
-                  "Counterfactual Infections compared to Baseline",
+                  "Deaths Averted",
+                  "Infections Averted",
+                  "Additional Deaths Averted",
+                  "Additional Infections Averted",
                   "Vaccinated People (1 or 2 doses) (Counterfactual)"
          ),
          list(
@@ -164,6 +171,118 @@ that do are countries that received few vaccines and have only seen a increase i
 deaths due to floating point precision errors when calculating the difference
 between two identical simulations. These countries have been set to 0.
 
+Deaths {data-navmenu="COVAX"}
+===================================== 
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Total 
+
+```{r}
+plot_layered_map(final_df, "COVAX", "Deaths", "")
+```
+
+### per 10k 
+
+```{r}
+plot_layered_map(final_df, "COVAX", "Deaths", "per 10k")
+```
+
+### per 1k vaccinations (one or more dose)
+
+```{r}
+plot_layered_map(final_df, "COVAX", "Deaths", "per 1k vaccinations")
+```
+
+Infections {data-navmenu="COVAX"}
+===================================== 
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Total 
+
+```{r}
+plot_layered_map(final_df, "COVAX", "Infections", "")
+```
+
+### per 10k 
+
+```{r}
+plot_layered_map(final_df, "COVAX", "Infections", "per 10k")
+```
+
+### per 1k vaccinations (one or more dose)
+
+```{r}
+plot_layered_map(final_df, "COVAX", "Infections", "per 1k vaccinations")
+```
+
+About this counter-factual {data-navmenu="COVAX"}
+===================================== 
+
+This counter-factual assumes that all COVAX AMC countries met the target of 20%
+of the eligible population fully dosed by the end of 2021. Deaths/infections averted
+are additional to the deaths/infections that have been averted by vaccinations in
+reality. Only countries that did not meet the target are plotted.
+
+Deaths {data-navmenu="WHO"}
+===================================== 
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Total 
+
+```{r}
+plot_layered_map(final_df, "WHO", "Deaths", "")
+```
+
+### per 10k 
+
+```{r}
+plot_layered_map(final_df, "WHO", "Deaths", "per 10k")
+```
+
+### per 1k vaccinations (one or more dose)
+
+```{r}
+plot_layered_map(final_df, "WHO", "Deaths", "per 1k vaccinations")
+```
+
+Infections {data-navmenu="WHO"}
+===================================== 
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Total 
+
+```{r}
+plot_layered_map(final_df, "WHO", "Infections", "")
+```
+
+### per 10k 
+
+```{r}
+plot_layered_map(final_df, "WHO", "Infections", "per 10k")
+```
+
+### per 1k vaccinations (one or more dose)
+
+```{r}
+plot_layered_map(final_df, "WHO", "Infections", "per 1k vaccinations")
+```
+
+About this counter-factual {data-navmenu="WHO"}
+===================================== 
+
+This counter-factual assumes that all countries/territories met the WHO target of 40%
+of the population fully dosed by the end of 2021. Deaths/infections averted
+are additional to the deaths/infections that have been averted by vaccinations in
+reality. Only countries that did not meet this target are shown.
+
 About
 =====================================
 
@@ -174,8 +293,7 @@ Column
 
 This [flexdashboard](https://pkgs.rstudio.com/flexdashboard/) displays [leaflet](https://rstudio.github.io/leaflet/)
 maps for a counter-factual-based analysis of the impact of the various COVID-19 
-vaccines up  to `r date`. Various counter-factuals, e.g. no vaccines, 
-distribution based upon country population size etc. are simulated using Imperial
+vaccines up  to `r date`. Various counter-factuals, e.g. no vaccines, etc. are simulated using Imperial
 College London's [nimue model](https://mrc-ide.github.io/nimue/). All other epidemic parameters 
 for each country are taken from the fits presented [here](https://mrc-ide.github.io/global-lmic-reports/).
 The simulated counter-factuals are compared to a simulation generated using these
@@ -234,7 +352,7 @@ Column
 #get values used in text
 ukDeathsAverted <- final_df %>%
   filter(counterfactual == "No Vaccines", Country == "United Kingdom") %>%
-  pull("Counterfactual Deaths compared to Baseline") %>%
+  pull("Deaths Averted") %>%
   round() %>%
   format(scientific = FALSE)
 ```
@@ -243,13 +361,15 @@ ukDeathsAverted <- final_df %>%
 The maps are presented as chloropleths with categorical colouring, a 
 countries exact value can be viewed by hovering over it with your mouse.
 
-The comparison of deaths/infections to the baseline is set up so that positive 
-values mean an increase in deaths/infections under the selected counter-factual
-and a negative value indicates a decrease. For example in the *No Vaccines* 
+Deaths Averted represents an increase in deaths/infections under the selected 
+counter-factual. For example in the *No Vaccines* 
 counter-factual the UK has a value of `r ukDeathsAverted` (total) deaths as can 
 be seen in figure 1. This indicates that there would have been `r ukDeathsAverted`
 more  deaths if there had been no vaccines in the UK. It is useful to think of 
 `r ukDeathsAverted` as the number of deaths averted by the real-life vaccinations.
+Additional Deaths Averted presents a decrease in deaths/infections in the 
+counterfactual, so under WHO counterfactual this the number of deaths that could
+have been avoided if the country had recieved that many vaccinations.
 
 The map tabs for simulated and baseline deaths just show the total or adjusted death
 counts and by definition are positive numbers. These are both presented on the same
@@ -261,3 +381,10 @@ country in the selected counter-factual. For *No Vaccines* this is 0. Please not
 
 Some small island nations, e.g. the Maldives, are represented by tiny polygons.
 The best way to view these is to mouse over them whilst zoomed out.
+
+### Coverage
+
+This research models all countries with population above 90,000 and several 
+territories and administrative regions. We have excluded mainland China from our
+results due to its unique position as the origin of the detected epidemic, lack
+of reported excess mortality, and large population size.

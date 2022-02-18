@@ -110,10 +110,9 @@ reduce memory usage and not for speed.
 interactive_map_id <- orderly::orderly_run("interactive_map",
                                            parameters = list(
                                              date = date,
-                                             excess = TRUE
+                                             exclude_iso3cs = exclude_iso3cs
                                            ), echo = FALSE)
 orderly::orderly_commit(interactive_map_id)
-
 #copy files across to github pages directory
 destination <- file.path(here::here(), "docs")
 origin <- file.path(here::here(), "archive", "interactive_map", 

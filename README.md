@@ -24,7 +24,7 @@ which are also used to produce the reports
 
 ## Usage
 
-A vingette that briefly run through the tasks used in this repo can be
+A vingette that briefly runs through the tasks used in this repo can be
 found
 [here](https://mrc-ide.github.io/covid-vaccine-impact-orderly/create_report.html),
 and also in the `vignettes` folder.

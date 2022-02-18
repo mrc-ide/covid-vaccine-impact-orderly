@@ -75,7 +75,7 @@ artefacts:
 #
 parameters:
   date: ~
-  excess: ~
+  exclude_iso3cs: ~
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -153,10 +153,12 @@ resources:
 #
 depends:
   run_simulations:
-    id: latest(parameter:date == date && parameter:excess == excess)
+    id: latest(parameter:date == date && parameter:excess == TRUE)
     use:
       Baseline.Rds: Baseline.Rds
       No Vaccines.Rds: No Vaccines.Rds
+      COVAX.Rds: COVAX.Rds
+      WHO.Rds: WHO.Rds
       counterfactuals.Rds: counterfactuals.Rds
   world_map:
     id: latest
