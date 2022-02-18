@@ -33,7 +33,8 @@ table1_df_vaccine <- readRDS(
   rename(vaccines = `Baseline (Total Vaccines)`) %>%
   select(iso3c, vaccines) %>%
   left_join(#number of people with 1+ dose
-    map_dfr(readRDS("countryfits.Rds"), ~tibble(vaccinated = sum(.x$interventions$max_vaccine)),
+    map_dfr(readRDS("countryfits.Rds"), ~tibble(vaccinated = sum(.x$interventions$max_vaccine[
+      c(TRUE,.x$interventions$date_vaccine_change <= date)])),
             .id = "iso3c")
   ) %>%
   filter(!(iso3c %in% exclude_iso3cs)) %>%
@@ -85,7 +86,8 @@ if(excess){
       mutate(counterfactual = "WHO")
   )
 } else {
-  table1_df_vaccine_cf_vaccine <- table1_df_vaccine
+  table1_df_vaccine_cf_vaccine <- table1_df_vaccine %>%
+    mutate(counterfactual = "WHO")
   #placeholder not used
 }
 

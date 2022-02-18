@@ -99,6 +99,8 @@ packages:
   - tidyr
   - purrr
   - readr
+  - stringr
+  - countrycode
 
 
 # Source files, in addition to the script.  Typically these will
