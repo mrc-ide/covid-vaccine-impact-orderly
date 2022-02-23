@@ -315,7 +315,7 @@ who_data <- lapply(iso3cs, function(iso3c){
           (a_delta_i_s - a_delta_i_f)
         #get vaccines
         vaccines <- fit$interventions$max_vaccine
-        if(sum(vaccines)/eligible_pop < 0.2){
+        if(sum(vaccines)/eligible_pop < 0.4){
           #first doses too low scale up first_doses
           vaccines <- vaccines/(sum(vaccines)/eligible_pop/0.4)
           #second doses to 100%
