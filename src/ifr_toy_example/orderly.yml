@@ -25,7 +25,8 @@
 # You must have a script that does something with the data.  This
 # will be a single string and the filename must exist when orderly is
 # run
-script: script.R
+script:
+  script.R
 
 # You must list at least one artefact that your report will generate.
 # Each artefact consists of one or more files.  The format is to list
@@ -44,33 +45,11 @@ script: script.R
 #             - figures/fig1.png
 #             - figures/fig2.png
 artefacts:
-  - data:
-      description: Information about the counterfactual vaccine assignments for the counterfactuals
-      filenames: counterfactuals.Rds
-  - data:
-      description: Baseline data simulation
-      filenames: Baseline.Rds
-  - data:
-      description: Baseline data simulation with no protection against infection
-      filenames: Baseline-Direct.Rds
-  - data:
-      description: Baseline data simulation with no deaths from healthcare overflow
-      filenames: Baseline-No Healthcare Surging.Rds
-  - data:
-      description: Baseline data simulation with no deaths from healthcare overflow
-      filenames: Baseline-Direct & No Healthcare Surging.Rds
-  - data:
-      description: Counterfactual simulation with no vaccines and no deaths from healthcare overflow
-      filenames: No Vaccines-No Healthcare Surging.Rds
-  - data:
-      description: Counterfactual simulation with no vaccines
-      filenames: No Vaccines.Rds
-  - data:
-      description: Counterfactual simulation if COVAX was on target
-      filenames: COVAX.Rds
-  - data:
-      description: Counterfactual simulation if WHO goals met
-      filenames: WHO.Rds
+  - report:
+      description: Sensitivity analysis for immune escape on deaths averted
+      filenames:
+        - res.Rds
+        - death_curves.Rds
 
 # An optional name to describe the report in more detail than its
 # directory name (which must be short) but less detail than
@@ -82,7 +61,7 @@ artefacts:
 # detail as you want.  Must be a string.  The yaml `>-` or `|` syntax
 # might be useful for long descriptions.
 #
-#description: readme.md
+# description:
 
 # Optional parameters to the report.  These will be substituted into
 # the SQL queries.  For example:
@@ -96,13 +75,7 @@ artefacts:
 # a parameter of b with no default.
 #
 parameters:
-  date: ~
   seed:
-    default: NA
-  excess: ~
-  parallel:
-    default: FALSE
-  exclude_iso3cs:
     default: NA
 
 # Similar to "data" but sets of temporary views before the data are
@@ -117,15 +90,15 @@ parameters:
 # reports.
 #
 packages:
-  - dplyr
-  - ggplot2
-  - squire
-  - countrycode
-  - stringr
   - squire.page
-  - future
+  - dplyr
+  - tibble
+  - lubridate
+  - ggplot2
   - purrr
-
+  - rlang
+  - ggpubr
+  - lubridate
 
 # Source files, in addition to the script.  Typically these will
 # contain function definitions.  These will be sourced after loading
@@ -133,8 +106,7 @@ packages:
 # preference to explicit source() calls in your script because
 # otherwise you will have to add them to "resources" (see below)
 #
-sources:
-  - R/pmcmc_utils.R
+# sources:
 
 # Resources that the script needs to run; this is an array of strings
 # representing filenames *relative to, and below, this directory*.
@@ -173,12 +145,4 @@ sources:
 #         use:
 #           other-data.csv: data.csv
 #
-depends:
-  fetch_fits:
-    id: latest(parameter:date == date && parameter:excess == excess)
-    use:
-      countryfits.Rds: countryfits.Rds
-  owid:
-    id: latest(parameter:date == date)
-    use:
-      owid.rds: owid.Rds
+# depends:

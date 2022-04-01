@@ -5,7 +5,7 @@ if(one_drive){
     stop("Must specify one_drive_loc")
   }
   #load from onedrive location
-  loc <- file.path(one_drive_loc, ifelse(excess, "excess", "standard"))
+  loc <- file.path(one_drive_loc, ifelse(excess, "excess", "reported"))
   #list files
   files <- setdiff(unlist(strsplit(list.files(loc), "\\.")), "Rds")
   #only keep countries

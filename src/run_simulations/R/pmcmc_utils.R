@@ -201,45 +201,12 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = TRUE,
   return(deaths_df)
 }
 remove_indirect <- function(out){
-    out$odin_parameters$vaccine_efficacy_infection <- matrix(0.5,
-                                                             nrow = nrow(out$odin_parameters$vaccine_efficacy_infection),
-                                                             ncol = ncol(out$odin_parameters$vaccine_efficacy_infection))
-    #scale up protection against disease to keep the same efficacy
-    if(any(out$interventions$date_vaccine_efficacy_infection_change != out$interventions$date_vaccine_efficacy_disease_change)){
-      "Different efficacy change times against disease and infection"
-    }
-    trueEff <-
-      Map("+",
-          out$interventions$vaccine_efficacy_infection,
-          Map("*",
-              Map("-", 1, out$interventions$vaccine_efficacy_infection),
-              out$interventions$vaccine_efficacy_disease
-          )
-      )
-    out$parameters$vaccine_efficacy_disease <- trueEff
-    out$interventions$vaccine_efficacy_disease <- trueEff
-    out$pmcmc_results$inputs$interventions$vaccine_efficacy_disease <- trueEff
-
-    #set infection efficacy in interventions
-    out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection <- lapply(
-      out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection, function(x) {
-        rep(0,17)
-      })
-    out$interventions$vaccine_efficacy_infection <- lapply(
-      out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection, function(x) {
-        rep(0,17)
-      })
-    # the calc_loglikelihood function samples from the model_params for vaccine pars rather than recalculating
-    # so we need to update this here
-    out$pmcmc_results$inputs$model_params$vaccine_efficacy_infection <- nimue:::format_ve_i_for_odin(
-      vaccine_efficacy_infection = out$interventions$vaccine_efficacy_infection,
-      tt_vaccine_efficacy_infection = out$pmcmc_results$inputs$model_params$tt_vaccine_efficacy_infection
-    )
-
-    out$pmcmc_results$inputs$model_params$prob_hosp <- nimue:::format_ve_d_for_odin(
-      vaccine_efficacy_disease = trueEff,
-      tt_vaccine_efficacy_disease = out$pmcmc_results$inputs$model_params$tt_vaccine_efficacy_disease,
-      prob_hosp = nimue:::probs$prob_hosp)
+  #we update the efficacies in the interventions
+  #just set ve_i's to 0, no need to scale disease as this is done later in ll func
+  for(var in grep("ve_i", names(out$interventions$vaccine_efficacies))){
+    out$interventions$vaccine_efficacies[[var]] <- rep(0, 3)
+    out$pmcmc_results$inputs$interventions$vaccine_efficacies[[var]] <- rep(0, 3)
+  }
 
     #set relative infectiousness to 1
     out$pmcmc_results$inputs$model_params$rel_infectiousness_vaccinated <-
@@ -272,51 +239,23 @@ remove_healthcare <- function(out){
 update_counterfactual <- function(out, counterfactual){
   out$pmcmc_results$inputs$interventions$date_vaccine_change <-
     counterfactual$date_vaccine_change
-  out$pmcmc_results$inputs$interventions$date_vaccine_efficacy_disease_change <-
-    counterfactual$date_vaccine_change
-  out$pmcmc_results$inputs$interventions$date_vaccine_efficacy_infection_change <-
-    counterfactual$date_vaccine_change
   out$pmcmc_results$inputs$interventions$date_vaccine_efficacy <-
-    counterfactual$date_vaccine_change
+    counterfactual$date_vaccine_efficacy
   out$pmcmc_results$inputs$interventions$max_vaccine <-
     counterfactual$max_vaccine
   out$pmcmc_results$inputs$interventions$dose_ratio <-
     counterfactual$dose_ratio
-  out$pmcmc_results$inputs$interventions$vaccine_efficacy_disease <-
-    lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)})
-  out$pmcmc_results$inputs$interventions$vaccine_efficacy_infection <-
-    lapply(counterfactual$vaccine_efficacy_infection, function(x){rep(x, 17)})
 
-  out$pmcmc_results$inputs$model_params$vaccine_efficacy_infection <- nimue:::format_ve_i_for_odin(
-    vaccine_efficacy_infection = lapply(counterfactual$vaccine_efficacy_infection, function(x){rep(x, 17)}),
-    tt_vaccine_efficacy_infection = c(0, seq_along(counterfactual$date_vaccine_change))
-  )
-  out$pmcmc_results$inputs$model_params$tt_vaccine_efficacy_infection <- c(0, seq_along(counterfactual$date_vaccine_change))
-
-  out$pmcmc_results$inputs$model_params$prob_hosp <- nimue:::format_ve_d_for_odin(
-    vaccine_efficacy_disease = lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)}),
-    tt_vaccine_efficacy_disease =  c(0, seq_along(counterfactual$date_vaccine_change)),
-    prob_hosp = out$parameters$prob_hosp
-  )
-  out$pmcmc_results$inputs$model_params$tt_vaccine_efficacy_disease <- c(0, seq_along(counterfactual$date_vaccine_change))
   #don't need to update the max vaccine as it uses intervention data
 
   out$interventions$date_vaccine_change <-
     counterfactual$date_vaccine_change
-  out$interventions$date_vaccine_efficacy_disease_change <-
-    counterfactual$date_vaccine_change
-  out$interventions$date_vaccine_efficacy_infection_change <-
-    counterfactual$date_vaccine_change
   out$interventions$date_vaccine_efficacy <-
-    counterfactual$date_vaccine_change
+    counterfactual$date_vaccine_efficacy
   out$interventions$max_vaccine <-
     counterfactual$max_vaccine
   out$interventions$dose_ratio <-
     counterfactual$dose_ratio
-  out$interventions$vaccine_efficacy_disease <-
-    lapply(counterfactual$vaccine_efficacy_disease, function(x){rep(x, 17)})
-  out$interventions$vaccine_efficacy_infection <-
-    lapply(counterfactual$vaccine_efficacy_infection, function(x){rep(x, 17)})
 
   #also remove healthcare if requested
   if(!is.null(counterfactual$no_healthcare)){

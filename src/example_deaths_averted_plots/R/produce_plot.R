@@ -33,7 +33,7 @@ replicate_first_deaths_plot <- ggplot(iso3c_df_replicate %>% filter(replicate ==
   ) +
   scale_fill_manual(values = c(colour_direct, colour_total)) +
   facet_wrap(vars(counterfactual), nrow = 2) +
-  labs(x = "Date", y = "Deaths") +
+  labs(x = "Date", y = "Daily Deaths") +
   theme_pubr() +
   theme(legend.position = "none")
 
@@ -73,7 +73,7 @@ final_plot <- ggplot(iso3c_df %>% group_by(counterfactual) %>% arrange(date) %>%
   geom_ribbon(aes(ymin = averted_deaths_025, ymax = averted_deaths_975), alpha = 0.3) +
   scale_fill_manual(values = c(colour_direct, colour_total)) +
   scale_colour_manual(values = c(colour_direct, colour_total)) +
-  labs(x = "Date", y = "Median (95% quantile) Cumulative Deaths Averted",
+  labs(x = "Date", y = "Median (95% quantile) Cumulative Daily Deaths Averted",
        fill = "Counterfactual:", colour = "Counterfactual:") +
   theme_pubr() +
   theme(legend.position = c(0.35, 0.8))
