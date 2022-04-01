@@ -105,15 +105,44 @@ fig2_df_extra_data <- fig2_df %>%
 ###Figure 2 dot plots:
 alpha <- 0.75
 
+#calculate correlation by income + pvalue
+corrs <- fig2_df_extra_data %>%
+  group_by(income_group) %>%
+  summarise(
+    corr = cor(x = averted_deaths_avg, y = vaccinations, use = "complete.obs", method = "spearman"),
+    #caculate a p value based on the z score
+    p = (sqrt((length(averted_deaths_avg) - 3)/1.06) *
+      atanh(corr)) %>%
+        pnorm(lower.tail = FALSE),
+    p = if_else(
+      p < 0.0001,
+      "<0.0001",
+      paste0("=",as.character(
+        signif(p, digits = 2)
+      ))
+    )
+  ) %>%
+  transmute(
+    income_group = income_group,
+    `Correlation:` = factor(
+      x = seq_len(4),
+      labels = paste0(income_group, " (", signif(corr, digits = 3), ", p", p, ")"),
+      levels = seq_len(4),
+      ordered = TRUE
+      )
+  )
+
 fig2_vacc <- ggplot(fig2_df_extra_data %>%
                       mutate(label =
-                               log(averted_deaths_avg) <= log(vaccinations)*0.98 -7.8
+                               log(averted_deaths_avg) <= log(vaccinations)*0.98
+                             -7.8
                                ) %>%
-                      filter(vaccinations > 0 & averted_deaths_avg > 0),
+                      filter(vaccinations > 0 & averted_deaths_avg > 0) %>%
+                      left_join(corrs),
                     aes(x = vaccinations,
                         y = averted_deaths_avg)) +
   geom_point(
-    aes(colour = income_group),
+    aes(colour = `Correlation:`),
     alpha = alpha
   ) +
   #geom_abline(aes(intercept = -7.8, slope = 1)) +
@@ -124,11 +153,13 @@ fig2_vacc <- ggplot(fig2_df_extra_data %>%
             hjust = 0) +
      theme_pubr() +
     scale_x_log10() +
-    scale_y_log10() +
+  scale_y_log10() +
   labs(x = "Vaccinations per 10k", y = "Median Deaths Averted per 10k",
-       colour = "Income Group:") +
-  theme(legend.key.size = unit(0.5, 'cm'),
-        legend.margin = margin())
+       colour = expression(paste("Income Group (r"["s"], ", ", italic("p"), "-value):"))) +
+  theme(legend.key.size = unit(0.25, 'cm'),
+        legend.margin = margin(),
+        legend.title.align=0.5) +
+  guides(colour = guide_legend(title.position="top"))
 
 fig2_pvacc <- ggplot(fig2_df_extra_data) +
   geom_point(
