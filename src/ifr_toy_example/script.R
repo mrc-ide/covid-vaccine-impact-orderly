@@ -6,8 +6,10 @@ if(!is.na(seed) & seed != "NA"){
 variable_parameters <- list(
   India_type = list(
     data = tibble(
-      deaths = c(14506, 50601, 62041, 83553, 110407, 137149, 133691, 98801, 82238, 81455, 64927, 63541, 65007, 63094, 55199, 34818, 36804, 49677, 51421,
-                 64591, 163419, 271734, 600103, 624699, 407582, 140985, 126373, 129763, 136651, 118683, 101090, 92772, 94338, 94087, 90210, 81653, 76853, 43591)
+      deaths = round(
+        c(14506, 50601, 62041, 83553, 110407, 137149, 133691, 98801, 82238, 81455, 64927, 63541, 65007, 63094, 55199, 34818, 36804, 49677, 51421,
+          64591, 163419, 271734, 600103, 624699, 407582, 140985, 126373, 129763, 136651, 118683, 101090, 92772, 94338, 94087, 90210, 81653, 76853, 43591)/10
+      )
     ) %>%
       mutate(
         week_start = as_date("2021-12-01") - 7 * rev(seq_along(deaths)),
@@ -86,8 +88,8 @@ variable_parameters$India_type$pars_init <- append(
 results_df <- map(seq_along(variable_parameters), function(x){
   pmcmc_pars_list <- variable_parameters[[x]]
   # healthcare
-  pmcmc_pars_list$baseline_hosp_bed_capacity <- sum(pmcmc_pars_list$population) / 1000
-  pmcmc_pars_list$baseline_ICU_bed_capacity <- sum(pmcmc_pars_list$population) / 10000
+  # pmcmc_pars_list$baseline_hosp_bed_capacity <- sum(pmcmc_pars_list$population) / 1000
+  # pmcmc_pars_list$baseline_ICU_bed_capacity <- sum(pmcmc_pars_list$population) / 10000
 
   ## Vaccine Parameters
   pmcmc_pars_list <- append(
@@ -307,8 +309,18 @@ results_df <- map(seq_along(variable_parameters), function(x){
           )
       )
   }
+
+  #use dr jacoby
+  pmcmc_pars_list$n_mcmc <- round(pmcmc_pars_list$n_mcmc/(10*length(pmcmc_pars_list$pars_init)))
+  pmcmc_pars_list$drjacoby_list <- list(
+    rungs = 10,
+    alpha = 2.5
+  )
+  pmcmc_pars_list$use_drjacoby <- TRUE
+  pmcmc_pars_list$burnin <- round(pmcmc_pars_list$n_mcmc)/2
+  pmcmc_pars_list$n_mcmc <- round(pmcmc_pars_list$n_mcmc)/2
   model_fits <- map(
-    .x = prob_hosps[1:2],
+    .x = prob_hosps,
     .f = function(prob_hosp_list, pmcmc_pars) {
       prob_hosp <- prob_hosp_list$prob_hosp
       iteration <- prob_hosp_list$iteration
@@ -381,7 +393,7 @@ results_df <- map(seq_along(variable_parameters), function(x){
   results_df
 })
 
-curve_plots <- map(seq_along(output), function(x) {
+curve_plots <- map(seq_along(results_df), function(x) {
   data_obj <- list(
     data = variable_parameters[[x]]$data,
     pop = variable_parameters[[x]]$population,
@@ -401,5 +413,5 @@ curve_plots <- map(seq_along(output), function(x) {
 names(curve_plots) <- names(variable_parameters)
 names(results_df) <- names(results_df)
 
-saveRDS(curve_plots, "death_curve.Rds")
+saveRDS(curve_plots, "death_curves.Rds")
 saveRDS(results_df, "res.Rds")
