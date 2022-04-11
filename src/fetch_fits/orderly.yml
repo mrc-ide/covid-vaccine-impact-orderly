@@ -80,6 +80,8 @@ parameters:
     default: FALSE
   one_drive_loc:
     default: ""
+  dummy:
+    default: FALSE
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual

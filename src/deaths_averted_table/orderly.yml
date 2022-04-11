@@ -161,3 +161,7 @@ depends:
       counterfactuals.Rds: counterfactuals.Rds
       COVAX.Rds: COVAX.Rds
       WHO.Rds: WHO.Rds
+
+
+resources:
+  - vacc_inputs_multi.rds

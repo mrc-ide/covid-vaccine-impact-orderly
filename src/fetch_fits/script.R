@@ -1,5 +1,7 @@
 ## First Get Data From Server
-
+if(dummy){
+  saveRDS(NULL, "countryfits.Rds")
+} else{
 if(one_drive){
   if(one_drive_loc == ""){
     stop("Must specify one_drive_loc")
@@ -39,3 +41,4 @@ fits <- map(fits, function(fit){
 
 #save fits in single Rds file
 saveRDS(fits, "countryfits.Rds")
+}

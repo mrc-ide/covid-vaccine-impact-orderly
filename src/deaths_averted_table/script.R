@@ -12,7 +12,8 @@ if(excess){
 ###Load data:
 table1_df_overall <- loadCounterfactualData(cf,
                                             group_by = NULL,
-                                            exclude_iso3cs = exclude_iso3cs)
+                                            exclude_iso3cs = exclude_iso3cs,
+                                            quantileSamples = 10000)
 table1_df_income <- loadCounterfactualData(cf,
                                            group_by = "income_group",
                                            exclude_iso3cs = exclude_iso3cs)
@@ -33,9 +34,9 @@ table1_df_vaccine <- readRDS(
   rename(vaccines = `Baseline (Total Vaccines)`) %>%
   select(iso3c, vaccines) %>%
   left_join(#number of people with 1+ dose
-    map_dfr(readRDS("countryfits.Rds"), ~tibble(vaccinated = sum(.x$interventions$max_vaccine[
-      c(TRUE,.x$interventions$date_vaccine_change <= date)])),
-            .id = "iso3c")
+    map_dfr(readRDS("vacc_inputs_multi.Rds"), ~tibble(vaccinated = sum(.x$max_vaccine[
+      .x$date_vaccine_change <= date]) * tail(.x$dose_ratio, 1)),
+      .id = "iso3c")
   ) %>%
   filter(!(iso3c %in% exclude_iso3cs)) %>%
   left_join(
@@ -319,7 +320,7 @@ if(excess){
       ""
     ),
     `Notes:` = if_else(
-      str_trim(` `) %in% c("ARE", "IRQ", "SAU", "PER", "NAM"),
+      str_trim(` `) %in% c(),
       paste0(`Notes:`, " Fit unable to recreate estimated deaths. Modelled deaths are lower than predicted excess mortality."),
       `Notes:`
     ))
