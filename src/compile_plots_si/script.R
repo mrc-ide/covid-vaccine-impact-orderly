@@ -52,7 +52,7 @@ delta_fig <-
       scale_x_continuous(labels = scales::percent) +
       labs(x = "Delta Immune Escape", y = "Deaths Averted by Vaccinations\nMedian and 95% quantile") +
       theme_pubr(),
-    ggplot(data_1, aes(week_start, (deaths/sum(population))*1e5)) +
+    ggplot(data_1, aes(week_start, (deaths/population)*1e5)) +
       geomtextpath::geom_textvline(label = "Delta Introduction",
                                    aes(xintercept = unique(start_date)),
                                    hjust = 0.2,
@@ -60,7 +60,7 @@ delta_fig <-
       geom_step(color = "red") +
       theme_bw() + ylab("Weekly Deaths per 100,000\n") + xlab("")  +
       ggpubr::theme_pubr(),
-    ggplot(data_2, aes(week_start, (deaths/sum(population))*1e5)) +
+    ggplot(data_2, aes(week_start, (deaths/population)*1e5)) +
       geomtextpath::geom_textvline(label = "Delta Introduction",
                                    aes(xintercept = unique(start_date)),
                                    hjust = 0.2,
@@ -105,6 +105,32 @@ delta_fig <-
 # )
 ggsave("delta_sensitivity.png", delta_fig, width = 12, height = 10)
 ggsave("delta_sensitivity.pdf", delta_fig, width = 12, height = 10)
+
+#ifr sensitivity
+ifr_res <- readRDS("ifr_res.Rds")
+ifr_data <- readRDS("ifr_death_curves.Rds")
+ifr_fig <-
+  ggarrange(
+    ggplot(ifr_res[[2]], aes(x = iteration, y = deaths_averted_median,
+                       ymin = deaths_averted_025, ymax = deaths_averted_975)) +
+      geom_line(colour = "red") + geom_ribbon(alpha = 0.1, fill = "red") +
+      #ylim(c(0, max(no_res$deaths_averted_975))) +
+      scale_x_continuous(labels = scales::percent) +
+      labs(x = "IFR Scaling", y = "Deaths Averted by Vaccinations\nMedian and 95% quantile") +
+      theme_pubr(),
+    ggplot(ifr_res[[1]], aes(x = iteration, y = deaths_averted_median,
+                    ymin = deaths_averted_025, ymax = deaths_averted_975)) +
+      geom_line(colour = "purple") + geom_ribbon(alpha = 0.1, fill = "purple") +
+      #ylim(c(0, max(res$deaths_averted_975))) +
+      scale_x_continuous(labels = scales::percent) +
+      labs(x = "IFR Scaling", y = "Deaths Averted by Vaccinations\nMedian and 95% quantile") +
+      theme_pubr(),
+    ifr_data[[2]],
+    ifr_data[[1]],
+    labels = "auto"
+  )
+ggsave("ifr_sensitivity.png", ifr_fig, width = 12, height = 10)
+ggsave("ifr_sensitivity.pdf", ifr_fig, width = 12, height = 10)
 
 #deaths averted excess
 averted_table <- readRDS("averted_table.Rds") %>%

@@ -227,7 +227,7 @@ results_df <- map(seq_along(variable_parameters), function(x){
   colnames(pmcmc_pars_list$proposal_kernel) <- names(pmcmc_pars_list$pars_init)
   rownames(pmcmc_pars_list$proposal_kernel) <- names(pmcmc_pars_list$pars_init)
   #ifr to iterate over
-  iterations <- seq(0, 1, length.out = 100)
+  iterations <- seq(0, 1, length.out = 7)
   #assume prob hosp and prob severe remain the same then scale prob death to match
   prob_hosp <- squire:::default_probs()$prob_hosp
   prob_severe <- squire:::default_probs()$prob_severe
@@ -277,14 +277,14 @@ results_df <- map(seq_along(variable_parameters), function(x){
   #   )
   # })
   #just scale prob_hosp its easier
-  prob_hosps <- map(iterations, function(x){
-    if(x <= 1/2){
-      x <- x*2
+  prob_hosps <- map(iterations, function(x_raw){
+    if(x_raw <= 1/2){
+      x <- x_raw*2
       new_ifr <- rep_34_ranges %>%
         mutate(temp = low * (1 - x) + ifr * x) %>%
         pull(temp)
     } else {
-      x <- x*2 - 1
+      x <- x_raw*2 - 1
       new_ifr <- rep_34_ranges %>%
         mutate(temp = ifr * (1 - x) + high * x) %>%
         pull(temp)
@@ -293,7 +293,7 @@ results_df <- map(seq_along(variable_parameters), function(x){
       prob_hosp = new_ifr/(
         prob_severe * squire::default_probs()$prob_severe_death_treatment +
           (1 - prob_severe) * squire::default_probs()$prob_non_severe_death_treatment),
-      iteration = x
+      iteration = x_raw
     )
   })
 

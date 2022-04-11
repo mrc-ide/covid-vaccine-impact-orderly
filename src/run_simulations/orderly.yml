@@ -71,6 +71,9 @@ artefacts:
   - data:
       description: Counterfactual simulation if WHO goals met
       filenames: WHO.Rds
+  - staticgraph:
+      description: Pdf of model fits
+      filenames: fitting_plots.pdf
 
 # An optional name to describe the report in more detail than its
 # directory name (which must be short) but less detail than
@@ -104,6 +107,10 @@ parameters:
     default: FALSE
   exclude_iso3cs:
     default: NA
+  get_from_cluster:
+    default: FALSE
+  cluster_file_loc:
+    default: FALSE
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -125,6 +132,8 @@ packages:
   - squire.page
   - future
   - purrr
+  - ggpubr
+  - qpdf
 
 
 # Source files, in addition to the script.  Typically these will

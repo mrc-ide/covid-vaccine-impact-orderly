@@ -9,8 +9,9 @@
 #' or "Both" to return values both with the aggregated in a special age_group "Total"
 #' @param direct Should there be an estimate of direct effect of the vaccine, i.e.
 #' no protection against infection. Default = FALSE.
+#' @param plot_name Name for fitting plot of country, if NULL no plot is made.
 deaths_averted <- function(out, draws, counterfactual, reduce_age = TRUE,
-                           direct = FALSE) {
+                           direct = FALSE, plot_name = NULL, excess = TRUE) {
   #error if Baseline in counterfactual
   if(any(c("Baseline","baseline","BASELINE") %in% names(counterfactual))){
     stop('"Baseline" is a reserved name for a counterfactual, please choose another name')
@@ -39,6 +40,39 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = TRUE,
 
   #Set up the baseline results
   baseline <- squire.page::generate_draws(out, pars.list, draws)
+
+  #create the fitting plot if needed
+  if(!is.null(plot_name)){
+    fit_1 <- dp_plot_2(baseline, excess) + labs(
+      title = country
+    )
+    fit_2 <- squire.page::cdp_plot(baseline) +
+      ggplot2::ylab("Cumulative Daily Deaths")
+    if(excess){
+      text <- ggpubr::text_grob(
+        "Daily deaths are included with estimated and reported weekly excess mortality shown as dashed black lines.
+         The red line represents median model estimates of daily deaths, and the shaded region represents the 95%
+         quantiles of the estimated deaths. Plots of the cumulative estimated deaths are also shown."
+      )
+    } else {
+      text <- ggpubr::text_grob(
+        "Daily deaths are included with reported COVID-19 deaths shown as points. The red line represents median
+         model estimates of daily deaths, and the shaded region represents the 95% quantiles of the model estimated
+         deaths. Plots of the cumulative estimated deaths are also shown, with the cumulative number of reported
+         deaths represented by a dashed black line."
+      )
+    }
+    plot <- ggarrange(
+      fit_1,
+      fit_2,
+      text,
+      ncol = 1,
+      heights = c(1,1,0.4)
+    )
+    #save to requested location
+    ggsave(plot_name, plot)
+  }
+
   # format the counter factual run
   baseline_deaths <- nimue_format(baseline, c("deaths", "infections"), date_0 = date_0,
                                   reduce_age = reduce_age) %>%
@@ -264,4 +298,28 @@ update_counterfactual <- function(out, counterfactual){
     }
   }
   return(out)
+}
+
+#updated version of dp plot to make it similar to cdp_plot
+dp_plot_2 <- function (res, excess) {
+  date_0 <- squire.page:::get_data_end_date.excess_nimue_simulation(res)
+  data <- res$pmcmc_results$inputs$data
+  #data$date <- squire.page:::get_dates_greater.excess_nimue_simulation(res)
+  data$adjusted_deaths <- data$deaths/as.numeric(data$week_end -
+                                                    data$week_start)
+  suppressWarnings(dp <- plot(res, "deaths", date_0 = date_0,
+                               x_var = "date") + ggplot2::theme_bw() + ggplot2::theme(legend.position = "none",
+                                                                                      axis.title.x = ggplot2::element_blank()) + ggplot2::ylab("Daily Deaths") +
+                     ggplot2::scale_x_date(date_labels = "%b %Y", date_breaks = "3 months") +
+                     ggplot2::xlab(""))
+  if(excess){
+    dp + ggplot2::geom_segment(data = data,
+                            ggplot2::aes(x = .data$week_start, xend = .data$week_end,
+                                         y = .data$adjusted_deaths, yend = .data$adjusted_deaths),
+                            linetype = "dashed")
+  } else {
+    dp + ggplot2::geom_point(data = data,
+                               ggplot2::aes(x = .data$week_end, y = .data$adjusted_deaths),
+                             size = 1)
+  }
 }

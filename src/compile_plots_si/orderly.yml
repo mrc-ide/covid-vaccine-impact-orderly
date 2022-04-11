@@ -49,6 +49,8 @@ artefacts:
       filenames:
         - delta_sensitivity.png
         - delta_sensitivity.pdf
+        - ifr_sensitivity.png
+        - ifr_sensitivity.pdf
         - reported_averted_deaths_table.csv
         - reported_excess_comparison.png
         - reported_excess_comparison.pdf
@@ -154,6 +156,11 @@ depends:
     id: latest
     use:
       india_res.Rds: res.Rds
+  ifr_toy_example:
+    id: latest
+    use:
+      ifr_res.Rds: res.Rds
+      ifr_death_curves.Rds: death_curves.Rds
   deaths_averted_table:
     id: latest(parameter:date == date && parameter:excess == FALSE)
     use:

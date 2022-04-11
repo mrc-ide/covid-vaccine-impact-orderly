@@ -246,7 +246,11 @@ run_simulations_id <- orderly::orderly_run("run_simulations",
                                              seed = 100100112,
                                              excess = FALSE,
                                              parallel = FALSE,
-                                             exclude_iso3cs = exclude_iso3cs
+                                             exclude_iso3cs = exclude_iso3cs,
+                                             get_from_cluster = TRUE,
+                                             cluster_file_loc = "Q:\\Vaccine-Impact-Simulations"
+                                             #to save time these have been run with this set of parameters on the DIDE Cluster,
+                                             #this option then just pulls in the correct objects from the given file path
                                            ), echo = FALSE)
 orderly::orderly_commit(run_simulations_id)
 ```
@@ -287,6 +291,12 @@ delta_toy_example_india_id <- orderly::orderly_run("delta_toy_example_india",
                                              parameters = list(seed = 1012),
                                              echo = FALSE)
 orderly::orderly_commit(delta_toy_example_india_id)
+
+
+ifr_toy_example_id <- orderly::orderly_run("ifr_toy_example",
+                                             parameters = list(seed = 99),
+                                             echo = FALSE)
+orderly::orderly_commit(ifr_toy_example_id)
 ```
 
 Produce model fits for some simulated data to explore the relationship between
