@@ -1,5 +1,5 @@
 df <- loadCounterfactualData("No Vaccines", group_by = "iso3c",
-                             exclude_iso3cs = exclude_iso3cs)
+                             exclude_iso3cs = NULL)
 
 #load population
 pop_df <- squire::population %>%

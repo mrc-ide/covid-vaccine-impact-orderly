@@ -20,7 +20,6 @@ knitr::opts_knit$set(root.dir = here::here())
 date <- "2021-12-08"
 #countries to exclude
 exclude_iso3cs <- "CHN"
-
 ```
 
 Here we set up our parameters to run the report. Whilst `date` is the only one we 
@@ -32,79 +31,13 @@ relevant fits/simulations etc.
 
 ## Get Model Fits
 
-```{r, echo=TRUE, eval=FALSE}
-#SET THIS TO THE LOCATION OF YOUR VERSION OF THE GLOBAL_LMIC_REPORTS_ORDERLY:
-repo <- "C:\\Users\\gbarnsle\\Documents\\Covid Vaccine Impact\\global-lmic-reports-orderly"
-#are the fits present on this system
-fits_present <- TRUE
-#should we just take them from onedrive
-one_drive <- TRUE
-#location?
-one_drive_loc <- file.path(
-  "C:\\Users\\gbarnsle\\Documents\\Covid Vaccine Impact\\global-lmic-reports-orderly\\gh-fits"
-)
-if(fits_present){
-  fetch_fit_id <- orderly::orderly_run("fetch_fits",
-                                     parameters = list(
-                                       date = date,
-                                       excess = TRUE,
-                                       repo = repo,
-                                       one_drive = one_drive,
-                                       one_drive_loc = one_drive_loc
-                                     ), echo = FALSE)
-  orderly::orderly_commit(fetch_fit_id)
-} else {
-  #now we make a zip to send to the other system and run there to collect the fits
-  dir.create("remote/export", showWarnings = FALSE, recursive = TRUE)
-  dir.create("remote/import", showWarnings = FALSE, recursive = TRUE)
-  fetch_fit_id <- orderly::orderly_bundle_pack("remote/export", "fetch_fits",
-                       parameters = list(
-                                       date = date,
-                                       excess = TRUE,
-                                       repo = repo
-                                     ))
-  #now move this fit to the correct system and run with 
-  #orderly::orderly_bundle_run() and put the output in remote/import
-  orderly::orderly_bundle_import(paste0("remote/import/", fetch_fit_id$id, ".zip"))
-}
-```
-
-This fetches the model fit objects for report. This take all available objects
-from the dedicated fitting repo and requires you to have generated your own fits
-with that. Alternatively you can use an included set of fits, or generate a zip
-file to run on an other system to get the fits.
-
-## Get other data sources
-
-```{r, echo=TRUE, eval=FALSE}
-world_map_id <- orderly::orderly_run("world_map", echo = FALSE)
-orderly::orderly_commit(world_map_id)
-
-owid_id <- orderly::orderly_run("owid", parameters = list(date = date), echo = FALSE)
-orderly::orderly_commit(owid_id)
-```
-
-This gets any other data used e.g. Our World in Data. Archive versions of these 
-will be provided with the model fits in the interests of reproducbility. All 
-other orderly tasks only draw from objects inside the repo.
-
-## Simulate Counterfactuals
-
-```{r, echo=TRUE, eval=FALSE}
-run_simulations_id <- orderly::orderly_run("run_simulations",
-                                           parameters = list(
-                                             date = date,
-                                             seed = 100100,
-                                             excess = TRUE,
-                                             parallel = FALSE,
-                                             exclude_iso3cs = exclude_iso3cs
-                                           ), echo = FALSE)
-orderly::orderly_commit(run_simulations_id)
-```
-
-This is one of the slowest parts of the report. As the number of the draws and 
-counter-factuals increases the R objects become very large so it is optimised to 
-reduce memory usage and not for speed.
+Originally we get fits from an orderly repository stored elsewhere then generate
+our simulations of deaths averted. However, we now run these on the DIDE cluster
+so an orderly task is used to gather these from a shared directory. These tasks
+are still included however this vignette will not run then as the results should
+be included in the GitHub repo. This is also true for the online resources used,
+the leaflet world map and Our World in Data. All other tasks should only require
+access to other tasks in this repository.
 
 ## Create interactive world map
 
@@ -211,53 +144,6 @@ Generate any other values needed
 ## Reported data plots
 
 ```{r, echo=TRUE, eval=FALSE}
-if(fits_present){
-  fetch_fit_id <- orderly::orderly_run("fetch_fits",
-                                     parameters = list(
-                                       date = date,
-                                       excess = FALSE,
-                                       repo = repo,
-                                       one_drive = one_drive,
-                                       one_drive_loc = one_drive_loc
-                                     ), echo = FALSE)
-  orderly::orderly_commit(fetch_fit_id)
-} else {
-  #now we make a zip to send to the other system and run there to collect the fits
-  dir.create("remote/export", showWarnings = FALSE, recursive = TRUE)
-  dir.create("remote/import", showWarnings = FALSE, recursive = TRUE)
-  fetch_fit_id <- orderly::orderly_bundle_pack("remote/export", "fetch_fits",
-                       parameters = list(
-                                       date = date,
-                                       excess = FALSE,
-                                       repo = repo
-                                     ))
-  #now move this fit to the correct system and run with 
-  #orderly::orderly_bundle_run() and put the output in remote/import
-  orderly::orderly_bundle_import(paste0("remote/import/", fetch_fit_id$id, ".zip"))
-}
-```
-
-Load in the fits
-
-```{r, echo=TRUE, eval=FALSE}
-run_simulations_id <- orderly::orderly_run("run_simulations",
-                                           parameters = list(
-                                             date = date,
-                                             seed = 100100112,
-                                             excess = FALSE,
-                                             parallel = FALSE,
-                                             exclude_iso3cs = exclude_iso3cs,
-                                             get_from_cluster = TRUE,
-                                             cluster_file_loc = "Q:\\Vaccine-Impact-Simulations"
-                                             #to save time these have been run with this set of parameters on the DIDE Cluster,
-                                             #this option then just pulls in the correct objects from the given file path
-                                           ), echo = FALSE)
-orderly::orderly_commit(run_simulations_id)
-```
-
-Generate simulations
-
-```{r, echo=TRUE, eval=FALSE}
 deaths_averted_table_id <- orderly::orderly_run("deaths_averted_table",
                                            parameters = list(
                                              date = date,
@@ -268,18 +154,6 @@ orderly::orderly_commit(deaths_averted_table_id)
 ```
 
 Generate deaths averted table.
-
-```{r, echo=TRUE, eval=FALSE}
-fitting_plots_id <- orderly::orderly_run("fitting_plots",
-                                           parameters = list(
-                                             date = date,
-                                             excess = TRUE
-                                           ), echo = FALSE)
-orderly::orderly_commit(fitting_plots_id)
-```
-
-Generates plots of each fit to go into the appendix, utilises the country fits
-not the simulation results
 
 ```{r, echo=TRUE, eval=FALSE}
 delta_toy_example_id <- orderly::orderly_run("delta_toy_example",

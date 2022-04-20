@@ -31,6 +31,6 @@ ggsave("figure3.pdf", deaths_averted_map,
 #log vaccine/log deaths averted figure
 dot_plots <- readRDS("dot_plots.Rds")
 ggsave("figure4.png", dot_plots$vacc,
-       width = 7, height = 5)
+       width = 9, height = 5)
 ggsave("figure4.pdf", dot_plots$vacc,
-       width = 7, height = 5)
+       width = 9, height = 5)

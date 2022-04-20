@@ -320,7 +320,7 @@ if(excess){
       ""
     ),
     `Notes:` = if_else(
-      str_trim(` `) %in% c(),
+      str_trim(` `) %in% c("IRQ"),
       paste0(`Notes:`, " Fit unable to recreate estimated deaths. Modelled deaths are lower than predicted excess mortality."),
       `Notes:`
     ))

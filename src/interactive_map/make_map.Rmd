@@ -13,7 +13,7 @@ output:
 #Load data and summarise, one cf at a time to work around RAM limits
 sum_df <- loadCounterfactualData(c("No Vaccines", "WHO", "COVAX"),
                          group_by = "iso3c",
-                         exclude_iso3cs = exclude_iso3cs)
+                         exclude_iso3cs = NULL)
 
 ##For No vaccines we must adjust for potential floating point/rounding errors
 #causing a negative deaths averted

@@ -75,7 +75,6 @@ artefacts:
 #
 parameters:
   date: ~
-  exclude_iso3cs: ~
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual

@@ -17,17 +17,18 @@ fig1_df_income <- loadCounterfactualData("No Vaccines",
 
 if(excess){
   #need to extract data from model fits
-  fits <- readRDS("countryfits.Rds")
-  #for each iso3c
-  fig1_df_data <- map_dfr(iso3cs, function(iso3c){
-    fits[[iso3c]]$pmcmc_results$inputs$data
-  }) %>%
-    mutate(
-      week_length = as.numeric(week_end - week_start),
-      obsDate = week_end,
-      deaths = deaths/week_length) %>%
-    group_by(obsDate) %>%
-    summarise(deaths = sum(deaths))
+  # fits <- readRDS("countryfits.Rds")
+  # #for each iso3c
+  # fig1_df_data <- map_dfr(iso3cs, function(iso3c){
+  #   fits[[iso3c]]$pmcmc_results$inputs$data
+  # }) %>%
+  #   mutate(
+  #     week_length = as.numeric(week_end - week_start),
+  #     obsDate = week_end,
+  #     deaths = deaths/week_length) %>%
+  #   group_by(obsDate) %>%
+  #   summarise(deaths = sum(deaths))
+  fig1_df_data <- readRDS("fig1_df_data.Rds")
   #ensure there is a week between dates
   if(any(as.numeric(diff(fig1_df_data$obsDate)) != 7)){
     warning("In excess data so weeks are inconsistenly spaced.")

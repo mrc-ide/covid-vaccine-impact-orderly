@@ -80,7 +80,7 @@ df_averted <- df_sorted %>%
 
 
 
-#fig <-
+fig <-
   ggplot(df_averted,
               aes(x = date, ymin = min, ymax = max, fill = mechanism)) +
   geom_ribbon(colour = "black") +
