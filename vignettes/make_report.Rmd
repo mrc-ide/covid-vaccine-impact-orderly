@@ -14,6 +14,40 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = here::here())
 ```
 
+## R Packages
+
+```{r, echo=TRUE, eval=FALSE}
+#MRC-IDE Packages
+devtools::install_github(
+  "mrc-ide/squire.page",
+  ref = "de251c167035808ab10b930168ac98f753e466cd"
+) #should install odin, squire and nimue
+devtools::install_github(
+  "vimc/orderly"
+)
+#CRAN packages
+install.packages("countrycode") #version 1.3.1
+install.packages("future") #version 1.23.0
+install.packages("dplyr") #version 1.0.7
+install.packages("stringr") #version 1.4.0
+install.packages("purrr") #version 0.3.4
+install.packages("tidyr") #version 1.2.0
+install.packages("readr") #version 2.1.2
+install.packages("lubridate") #version 1.8.0
+install.packages("tibble") #version 3.1.6
+install.packages("rlang") #version 1.0.1
+install.packages("ggplot2") #version 3.3.5
+install.packages("forcats") #version 0.5.1
+install.packages("cowplot") #version 1.1.1
+install.packages("ggpubr") #version 0.4.0
+install.packages("gridExtra") #version 2.3
+install.packages("sf") #version 1.0.6
+install.packages("qpdf") #version 1.1
+```
+
+All packages used in this repository and the versions used to generate the data.
+Feel free to skip if you already have these.
+
 ## Parameter Choices
 
 ```{r, echo=TRUE, eval=FALSE}
@@ -38,26 +72,6 @@ are still included however this vignette will not run then as the results should
 be included in the GitHub repo. This is also true for the online resources used,
 the leaflet world map and Our World in Data. All other tasks should only require
 access to other tasks in this repository.
-
-## Create interactive world map
-
-```{r, echo=TRUE, eval=FALSE}
-interactive_map_id <- orderly::orderly_run("interactive_map",
-                                           parameters = list(
-                                             date = date
-                                           ), echo = FALSE)
-orderly::orderly_commit(interactive_map_id)
-#copy files across to github pages directory
-destination <- file.path(here::here(), "docs")
-origin <- file.path(here::here(), "archive", "interactive_map", 
-                    interactive_map_id, "web_page")
-for(file in list.files(origin)){
-  file.copy(file.path(origin, file), file.path(destination, file), overwrite = TRUE)
-}
-```
-
-This task generates the interactive leaflet map. The one used on the github 
-pages for this repository is copied across from the *web_page* sub directory.
 
 ## Generate Table for Report
 
@@ -123,7 +137,8 @@ orderly::orderly_commit(compile_plots_id)
 ```
 
 Originally a report this now just puts the plots into pngs. All in one task so
-that it is simple to modify dimensions etc.
+that it is simple to modify dimensions etc. Table 1 in the paper is taken from
+compile_plots_si, generated later in this file.
 
 ## Numbers for Report
 
@@ -222,4 +237,4 @@ compile_plots_si_id <- orderly::orderly_run("compile_plots_si",
 orderly::orderly_commit(compile_plots_si_id)
 ```
 
-Compile some of the figures and tables for the SI.
+Compile some of the figures and tables for the SI. Table 1 is also generated here.
