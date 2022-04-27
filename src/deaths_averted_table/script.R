@@ -33,7 +33,7 @@ table1_df_vaccine <- readRDS(
 )%>%
   rename(vaccines = `Baseline (Total Vaccines)`) %>%
   select(iso3c, vaccines) %>%
-  left_join(#number of people with 1+ dose
+  left_join(#number of people with full dose
     map_dfr(readRDS("vacc_inputs_multi.Rds"), ~tibble(vaccinated = sum(.x$max_vaccine[
       .x$date_vaccine_change <= date]) * tail(.x$dose_ratio, 1)),
       .id = "iso3c")
@@ -45,6 +45,15 @@ table1_df_vaccine <- readRDS(
       summarise(
         population = sum(n)
       )
+  ) %>%
+  mutate(#limit coverage to sensible values (disprepencies in population/OWID vaccination data)
+    vaccinated  = if_else(vaccinated  > population,
+                       as.numeric(population), vaccinated),
+    #add vaccines data for FSM since its missing from OWID, using the imputed values
+    vaccines = if_else(iso3c == "FSM" & vaccines == 0,
+                       (readRDS("vacc_inputs_multi.Rds")[["FSM"]][["max_vaccine"]] %>% sum()) *
+                         (1 + readRDS("vacc_inputs_multi.Rds")[["FSM"]][["dose_ratio"]] %>% tail(1)),
+                       vaccines)
   )
 #add new covax/who coverage if target met
 if(excess){
@@ -242,16 +251,16 @@ if(excess){
                                                                                    (`No Vaccinesvaccinated`/`No Vaccinespopulation`) -
                                                                                    1),
       COVAX_percentage_avg = COVAX_avg/`No Vaccines_avg`*100,
-      COVAX_percentage_025 = COVAX_025/`No Vaccines_025`*100,
-      COVAX_percentage_975 = COVAX_975/`No Vaccines_975`*100,
+      COVAX_percentage_025 = COVAX_025/`No Vaccines_avg`*100,
+      COVAX_percentage_975 = COVAX_975/`No Vaccines_avg`*100,
       `Additional Deaths Averted if COVAX Targets met (%)` = writeText(.data, "COVAX_percentage", percentage = TRUE),
       `Additional Deaths Averted if WHO Targets met` = writeText(.data, "WHO"),
       `Increase in Vaccination Coverage\nif WHO targets met` = format_coverage((`WHOvaccinated`/`WHOpopulation`)/
                                                                                  (`No Vaccinesvaccinated`/`No Vaccinespopulation`) -
                                                                                  1),
       WHO_percentage_avg = WHO_avg/`No Vaccines_avg`*100,
-      WHO_percentage_025 = WHO_025/`No Vaccines_025`*100,
-      WHO_percentage_975 = WHO_975/`No Vaccines_975`*100,
+      WHO_percentage_025 = WHO_025/`No Vaccines_avg`*100,
+      WHO_percentage_975 = WHO_975/`No Vaccines_avg`*100,
       `Additional Deaths Averted if WHO Targets met (%)` = writeText(.data, "WHO_percentage", percentage = TRUE)
     )
 
@@ -319,10 +328,12 @@ if(excess){
       "COVAX AMC country met target so no increase in vaccination modelled",
       ""
     ),
-    `Notes:` = if_else(
-      str_trim(` `) %in% c("IRQ"),
-      paste0(`Notes:`, " Fit unable to recreate estimated deaths. Modelled deaths are lower than predicted excess mortality."),
-      `Notes:`
+    `Notes:` = case_when(
+      str_trim(` `) %in% c("IRQ") ~
+        paste0(`Notes:`, " Fit unable to recreate estimated deaths. Modelled deaths are lower than predicted excess mortality."),
+      str_trim(` `) %in% c("CUB", "MUS", "SYC") ~
+        paste0(`Notes:`, " 100% coverage caused by inconsistencies in vaccination data, in model logic this is actually capped to around 80% coverage as yound children are not eligible."),
+      TRUE ~ `Notes:`
     ))
 } else {
   df <-

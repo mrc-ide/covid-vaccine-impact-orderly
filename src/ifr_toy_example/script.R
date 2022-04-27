@@ -85,8 +85,6 @@ variable_parameters$India_type$pars_init <- append(
   variable_parameters$India_type$pars_init, pars_init_rw
 )
 
-variable_parameters <- variable_parameters[2]
-
 results_df <- map(seq_along(variable_parameters), function(x){
   pmcmc_pars_list <- variable_parameters[[x]]
   # healthcare

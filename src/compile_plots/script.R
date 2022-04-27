@@ -17,8 +17,26 @@ averted_table <- readRDS("averted_table.Rds")
 write.csv(
   averted_table[[1]],
   "table2.csv")
+#add updated percentages to table 3
 write.csv(
-  averted_table[[2]],
+  averted_table[[2]] %>%
+    left_join(readRDS("COVAX_WHO_percentages.Rds") %>%
+                rename(
+                  ` ` = measure
+                ) %>%
+                mutate(
+                  ` ` = if_else(` ` == "Worldwide",
+                                ` `,
+                                paste0("   ", ` `))
+                ),
+              by = " ") %>%
+    mutate(
+      `Additional Deaths Averted if COVAX Targets met (%)` = covax_p_averted,
+      `Additional Deaths Averted if WHO Targets met (%)` = who_p_averted,
+      `Countries Failing COVAX Target` = n_fail_covax,
+      `Countries Failing WHO Target` = n_fail_who
+    ) %>%
+    select(!c(covax_p_averted, who_p_averted, n_fail_covax, n_fail_who)),
   "table3.csv")
 
 #world map

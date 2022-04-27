@@ -135,7 +135,7 @@ corrs <- fig2_df_extra_data %>%
 fig2_vacc <- ggplot(fig2_df_extra_data %>%
                       mutate(label =
                                log(averted_deaths_avg) <= log(vaccinations)*0.98
-                             -7.8
+                             -7.8 | (averted_deaths_avg > 1e+01 & vaccinations < 100)
                                ) %>%
                       filter(vaccinations > 0 & averted_deaths_avg > 0) %>%
                       left_join(corrs),

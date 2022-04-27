@@ -98,6 +98,7 @@ parameters:
 #
 packages:
   - ggplot2
+  - dplyr
   - sf
 
 # Source files, in addition to the script.  Typically these will
@@ -158,6 +159,10 @@ depends:
     id: latest(parameter:date == date && parameter:excess == TRUE)
     use:
       averted_table.Rds: averted_table.Rds
+  COVAX_WHO_percentages:
+    id: latest(parameter:date == date)
+    use:
+      COVAX_WHO_percentages.Rds: COVAX_WHO_percentages.Rds
   map_plot:
     id: latest(parameter:date == date && parameter:excess == TRUE)
     use:

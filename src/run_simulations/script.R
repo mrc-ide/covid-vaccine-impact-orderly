@@ -328,6 +328,13 @@ saveRDS(
       0,
       `Baseline (Total Vaccines)`
     )) %>%
+    rbind(
+      c(iso3c = "PRK", `Baseline (Total Vaccines)` = 0) #add missing country
+    ) %>%#add missing country, calculated from modelled values
+    mutate(`Baseline (Total Vaccines)` = if_else(
+      iso3c == "FSM",
+      77833,
+      as.numeric(`Baseline (Total Vaccines)`))) %>%
     left_join(
       map_df(
         seq_along(counterfactuals),

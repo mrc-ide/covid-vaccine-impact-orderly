@@ -63,9 +63,12 @@ saveRDS(
     no_vacc_deaths_2021 = median(deaths),
     no_vacc_deaths_2021_025 = quantile(deaths, 0.025),
     no_vacc_deaths_2021_975 = quantile(deaths, 0.975),
-    covax_deaths = covax_deaths_averted$averted_deaths_avg,
-    covax_deaths_025 = covax_deaths_averted$averted_deaths_025,
-    covax_deaths_975 = covax_deaths_averted$averted_deaths_975,
+    covax_deaths_averted = covax_deaths_averted$averted_deaths_avg,
+    covax_deaths_averted_025 = covax_deaths_averted$averted_deaths_025,
+    covax_deaths_averted_975 = covax_deaths_averted$averted_deaths_975,
+    covax_deaths = covax_deaths_averted$deaths_avg,
+    covax_deaths_025 = covax_deaths_averted$deaths_025,
+    covax_deaths_975 = covax_deaths_averted$deaths_975,
     lic_not_meet_covax = lic_not_meet_covax
   ),
   "report_numbers.Rds"

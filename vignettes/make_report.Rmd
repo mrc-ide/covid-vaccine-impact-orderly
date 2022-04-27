@@ -14,6 +14,44 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = here::here())
 ```
 
+## R Packages
+
+```{r, echo=TRUE, eval=FALSE}
+#MRC-IDE Packages
+devtools::install_github(
+  "mrc-ide/squire.page",
+  ref = "3fbb97f3e72c4e6bd7f66690a53f7bb59ce5ea0e"
+) #should install odin, squire and nimue
+devtools::install_github(
+  "mrc-ide/drjacoby",
+  ref = "476d94f3eb7357f8e2278834c0af04afd772cf69"
+)
+devtools::install_github(
+  "vimc/orderly"
+)
+#CRAN packages
+install.packages("countrycode") #version 1.3.1
+install.packages("future") #version 1.24.0
+install.packages("dplyr") #version 1.0.8
+install.packages("stringr") #version 1.4.0
+install.packages("purrr") #version 0.3.4
+install.packages("tidyr") #version 1.2.0
+install.packages("readr") #version 2.1.2
+install.packages("lubridate") #version 1.8.0
+install.packages("tibble") #version 3.1.6
+install.packages("rlang") #version 1.0.2
+install.packages("ggplot2") #version 3.3.5
+install.packages("forcats") #version 0.5.1
+install.packages("cowplot") #version 1.1.1
+install.packages("ggpubr") #version 0.4.0
+install.packages("gridExtra") #version 2.3
+install.packages("sf") #version 1.0.7
+install.packages("qpdf") #version 1.1
+```
+
+All packages used in this repository and the versions used to generate the data.
+Feel free to skip if you already have these.
+
 ## Parameter Choices
 
 ```{r, echo=TRUE, eval=FALSE}
@@ -69,6 +107,14 @@ deaths_averted_table_id <- orderly::orderly_run("deaths_averted_table",
                                              seed = 1001000011
                                            ), echo = FALSE)
 orderly::orderly_commit(deaths_averted_table_id)
+
+#extra task to correctly calculate percentage deaths averted for COVAX and WHO
+COVAX_WHO_percentages_id <- orderly::orderly_run("COVAX_WHO_percentages",
+                                           parameters = list(
+                                             date = date,
+                                             seed = 10010
+                                           ), echo = FALSE)
+orderly::orderly_commit(COVAX_WHO_percentages_id)
 ```
 
 This generates a Rds of a table of the counter factual deaths averted.
@@ -82,7 +128,6 @@ example_deaths_averted_plots_id <- orderly::orderly_run("example_deaths_averted_
                                              seed = 1000100
                                            ), echo = FALSE)
 orderly::orderly_commit(example_deaths_averted_plots_id)
-
 
 dot_plots_id <- orderly::orderly_run("dot_plots",
                                            parameters = list(
