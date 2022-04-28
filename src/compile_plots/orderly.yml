@@ -82,8 +82,7 @@ artefacts:
 # would declare a parameter called 'a' with a default value of 1, and
 # a parameter of b with no default.
 #
-parameters:
-  date: ~
+#parameters:
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -148,27 +147,27 @@ packages:
 #
 depends:
   example_deaths_averted_plots:
-    id: latest(parameter:date == date)
+    id: latest
     use:
       example_plots.Rds: example_plots.Rds
   global_deaths_averted_plot:
-    id: latest(parameter:date == date && parameter:excess == TRUE)
+    id: latest(parameter:excess == TRUE)
     use:
       global_deaths_averted.Rds: plots/global_deaths_averted.Rds
   deaths_averted_table:
-    id: latest(parameter:date == date && parameter:excess == TRUE)
+    id: latest(parameter:excess == TRUE)
     use:
       averted_table.Rds: averted_table.Rds
   COVAX_WHO_percentages:
-    id: latest(parameter:date == date)
+    id: latest
     use:
       COVAX_WHO_percentages.Rds: COVAX_WHO_percentages.Rds
   map_plot:
-    id: latest(parameter:date == date && parameter:excess == TRUE)
+    id: latest(parameter:excess == TRUE)
     use:
       deaths_averted_map.Rds: deaths_averted_map.Rds
   dot_plots:
-    id: latest(parameter:date == date && parameter:excess == TRUE)
+    id: latest(parameter:excess == TRUE)
     use:
       dot_plots.Rds: plots/dot_plots.Rds
 

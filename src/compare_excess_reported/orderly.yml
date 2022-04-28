@@ -72,10 +72,7 @@ artefacts:
 # a parameter of b with no default.
 #
 parameters:
-  date: ~
   seed:
-    default: NA
-  exclude_iso3cs:
     default: NA
 
 # Similar to "data" but sets of temporary views before the data are
@@ -144,13 +141,13 @@ sources:
 #           other-data.csv: data.csv
 #
 depends:
-  run_simulations:
-    id: latest(parameter:date == date && parameter:excess == TRUE)
+  gather_simulations:
+    id: latest(parameter:excess == TRUE)
     use:
       No Vaccines_excess.Rds: No Vaccines.Rds
       Baseline_excess.Rds: Baseline.Rds
   reported_data_for_comparison:
-    id: latest(parameter:date == date)
+    id: latest
     use:
       No Vaccines_reported.Rds: No Vaccines_reported.Rds
       Baseline_reported.Rds: Baseline_reported.Rds

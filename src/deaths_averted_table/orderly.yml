@@ -74,12 +74,9 @@ artefacts:
 # a parameter of b with no default.
 #
 parameters:
-  date: ~
   seed:
     default: NA
   excess: ~
-  exclude_iso3cs:
-    default: NA
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -149,12 +146,8 @@ sources:
 #           other-data.csv: data.csv
 #
 depends:
-  fetch_fits:
-    id: latest(parameter:date == date && parameter:excess == excess)
-    use:
-      countryfits.Rds: countryfits.Rds
-  run_simulations:
-    id: latest(parameter:date == date && parameter:excess == excess)
+  gather_simulations:
+    id: latest(parameter:excess == excess)
     use:
       No Vaccines.Rds: No Vaccines.Rds
       Baseline.Rds: Baseline.Rds
@@ -162,6 +155,3 @@ depends:
       COVAX.Rds: COVAX.Rds
       WHO.Rds: WHO.Rds
 
-
-resources:
-  - vacc_inputs_multi.rds

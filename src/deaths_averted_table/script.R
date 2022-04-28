@@ -12,48 +12,30 @@ if(excess){
 ###Load data:
 table1_df_overall <- loadCounterfactualData(cf,
                                             group_by = NULL,
-                                            exclude_iso3cs = exclude_iso3cs,
                                             quantileSamples = 10000)
 table1_df_income <- loadCounterfactualData(cf,
-                                           group_by = "income_group",
-                                           exclude_iso3cs = exclude_iso3cs)
+                                           group_by = "income_group")
 
 table1_df_who <- loadCounterfactualData(cf,
-                                        group_by = "who_region",
-                                        exclude_iso3cs = exclude_iso3cs)
+                                        group_by = "who_region")
 
 table1_df_ind <- loadCounterfactualData(cf,
-                                 group_by = "iso3c",
-                                 exclude_iso3cs = exclude_iso3cs) %>%
+                                 group_by = "iso3c") %>%
   select(!country)
 
 #total vaccine doses
 table1_df_vaccine <- readRDS(
   "counterfactuals.Rds"
 )%>%
-  rename(vaccines = `Baseline (Total Vaccines)`) %>%
-  select(iso3c, vaccines) %>%
-  left_join(#number of people with full dose
-    map_dfr(readRDS("vacc_inputs_multi.Rds"), ~tibble(vaccinated = sum(.x$max_vaccine[
-      .x$date_vaccine_change <= date]) * tail(.x$dose_ratio, 1)),
-      .id = "iso3c")
-  ) %>%
-  filter(!(iso3c %in% exclude_iso3cs)) %>%
+  rename(vaccines = `Baseline (Total Vaccines)`,
+         vaccinated = `Baseline`) %>%
+  select(iso3c, vaccines, vaccinated) %>%
   left_join(
     squire::population %>%
       group_by(iso3c) %>%
       summarise(
         population = sum(n)
       )
-  ) %>%
-  mutate(#limit coverage to sensible values (disprepencies in population/OWID vaccination data)
-    vaccinated  = if_else(vaccinated  > population,
-                       as.numeric(population), vaccinated),
-    #add vaccines data for FSM since its missing from OWID, using the imputed values
-    vaccines = if_else(iso3c == "FSM" & vaccines == 0,
-                       (readRDS("vacc_inputs_multi.Rds")[["FSM"]][["max_vaccine"]] %>% sum()) *
-                         (1 + readRDS("vacc_inputs_multi.Rds")[["FSM"]][["dose_ratio"]] %>% tail(1)),
-                       vaccines)
   )
 #add new covax/who coverage if target met
 if(excess){
@@ -141,7 +123,7 @@ table1_df_vaccine <- table1_df_vaccine %>%
   )
 
 #function to convert to text
-writeText <- function(row, name, percentage = FALSE){
+writeText <- function(row, name, percentage = FALSE, whole = FALSE){
   if(percentage){
     percentage <- "%"
   } else {
@@ -149,9 +131,24 @@ writeText <- function(row, name, percentage = FALSE){
   }
   if(is.na(row[[paste0(name,"_avg")]])){
     ""
-  } else{
+  } else if(whole){
     format_func <- function(x){
-      format(signif(x, digits = 4), scientific = FALSE, digits = 4, big.mark = ",")
+      case_when(x >= 10000 ~ format(signif(x, digits = 4), scientific = FALSE, digits = 4, big.mark = ","),
+                x >= 10 ~ format(round(x, -1), big.mark = ","),
+                TRUE ~ format(round(x), big.mark = ","))
+    }
+    paste0(
+      paste0(format_func(row[[paste0(name,"_avg")]]), percentage),
+      " (",
+      paste0(format_func(row[[paste0(name,"_025")]]), percentage),
+      " - ",
+      paste0(format_func(row[[paste0(name,"_975")]]), percentage),
+      ")"
+    )
+  } else {
+    format_func <- function(x){
+      case_when(x < 0 & x > -1 ~ rep("0", length(x)),
+                TRUE ~ format(signif(x, digits = 4), scientific = FALSE, digits = 4, big.mark = ","))
     }
     paste0(
       paste0(format_func(row[[paste0(name,"_avg")]]), percentage),
@@ -235,8 +232,8 @@ table1 <- table1_df_overall %>%
   ) %>%
   rowwise() %>%
   #calculate terms
-  mutate(`Total Deaths,\nwith vaccinations` = writeText(.data, "No Vaccinesbaseline_deaths"),
-         `Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines"),
+  mutate(`Total Deaths,\nwith vaccinations` = writeText(.data, "No Vaccinesbaseline_deaths", whole = TRUE),
+         `Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines", whole = TRUE),
          `Deaths Averted by Vaccinations\nPer 10k People` = writeText(.data, "No Vaccines_per_pop"),
          `Deaths Averted by Vaccinations\nPer 10k Vaccines` = writeText(.data, "No Vaccines_per_vacc"),
          #calculate coverage of 1+dose
@@ -246,7 +243,7 @@ if(excess){
   table1 <-
     table1 %>%
     mutate(
-      `Additional Deaths Averted if COVAX Targets met` = writeText(.data, "COVAX"),
+      `Additional Deaths Averted if COVAX Targets met` = writeText(.data, "COVAX", whole = TRUE),
       `Increase in Vaccination Coverage\nif COVAX targets met` = format_coverage((`COVAXvaccinated`/`COVAXpopulation`)/
                                                                                    (`No Vaccinesvaccinated`/`No Vaccinespopulation`) -
                                                                                    1),
@@ -254,7 +251,7 @@ if(excess){
       COVAX_percentage_025 = COVAX_025/`No Vaccines_avg`*100,
       COVAX_percentage_975 = COVAX_975/`No Vaccines_avg`*100,
       `Additional Deaths Averted if COVAX Targets met (%)` = writeText(.data, "COVAX_percentage", percentage = TRUE),
-      `Additional Deaths Averted if WHO Targets met` = writeText(.data, "WHO"),
+      `Additional Deaths Averted if WHO Targets met` = writeText(.data, "WHO", whole = TRUE),
       `Increase in Vaccination Coverage\nif WHO targets met` = format_coverage((`WHOvaccinated`/`WHOpopulation`)/
                                                                                  (`No Vaccinesvaccinated`/`No Vaccinespopulation`) -
                                                                                  1),
@@ -293,8 +290,8 @@ if(excess){
 } else {
   output_table <- table1 %>%
     filter(!str_trim(` `) %in% c(table1_df_ind$iso3c, "by Country/Admin Region:")) %>%
-    mutate(`Total Deaths,\nwith vaccinations` = writeText(.data, "No Vaccinesbaseline_deaths"),
-           `Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines"),
+    mutate(`Total Deaths,\nwith vaccinations` = writeText(.data, "No Vaccinesbaseline_deaths", whole = TRUE),
+           `Deaths Averted by Vaccinations` = writeText(.data, "No Vaccines", whole = TRUE),
            `Deaths Averted by Vaccinations\nPer 10k People` = writeText(.data, "No Vaccines_per_pop"),
            `Deaths Averted by Vaccinations\nPer 10k Vaccines` = writeText(.data, "No Vaccines_per_vacc"),
            #calculate coverage of 1+dose
@@ -329,7 +326,7 @@ if(excess){
       ""
     ),
     `Notes:` = case_when(
-      str_trim(` `) %in% c("IRQ") ~
+      str_trim(` `) %in% c("IRQ", "SDN") ~
         paste0(`Notes:`, " Fit unable to recreate estimated deaths. Modelled deaths are lower than predicted excess mortality."),
       str_trim(` `) %in% c("CUB", "MUS", "SYC") ~
         paste0(`Notes:`, " 100% coverage caused by inconsistencies in vaccination data, in model logic this is actually capped to around 80% coverage as yound children are not eligible."),

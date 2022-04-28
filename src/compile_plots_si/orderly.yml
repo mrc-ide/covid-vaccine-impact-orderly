@@ -81,8 +81,7 @@ artefacts:
 # would declare a parameter called 'a' with a default value of 1, and
 # a parameter of b with no default.
 #
-parameters:
-  date: ~
+#parameters:
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -162,14 +161,14 @@ depends:
       ifr_res.Rds: res.Rds
       ifr_death_curves.Rds: death_curves.Rds
   deaths_averted_table:
-    id: latest(parameter:date == date && parameter:excess == FALSE)
+    id: latest(parameter:excess == FALSE)
     use:
       averted_table.Rds: averted_table.Rds
   compare_excess_reported:
-    id: latest(parameter:date == date)
+    id: latest
     use:
       reported_excess_comparison.Rds: reported_excess_comparison.Rds
   deaths_averted_hospital:
-    id: latest(parameter:date == date)
+    id: latest
     use:
       hospital_effects.Rds: hospital_effects.Rds

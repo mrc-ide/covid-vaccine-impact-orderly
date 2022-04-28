@@ -73,7 +73,6 @@ artefacts:
 # a parameter of b with no default.
 #
 parameters:
-  date: ~
   seed:
     default: NA
 
@@ -143,8 +142,8 @@ sources:
 #           other-data.csv: data.csv
 #
 depends:
-  run_simulations:
-    id: latest(parameter:date == date && parameter:excess == TRUE)
+  gather_simulations:
+    id: latest(parameter:excess == TRUE)
     use:
       No Vaccines.Rds: No Vaccines.Rds
       Baseline.Rds: Baseline.Rds

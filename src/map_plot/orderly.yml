@@ -73,7 +73,6 @@ artefacts:
 # a parameter of b with no default.
 #
 parameters:
-  date: ~
   excess: ~
 
 # Similar to "data" but sets of temporary views before the data are
@@ -140,13 +139,13 @@ packages:
 #           other-data.csv: data.csv
 #
 depends:
-  run_simulations:
-    id: latest(parameter:date == date && parameter:excess == excess)
+  gather_simulations:
+    id: latest(parameter:excess == excess)
     use:
       No Vaccines.Rds: No Vaccines.Rds
       Baseline.Rds: Baseline.Rds
       counterfactuals.Rds: counterfactuals.Rds
-  world_map:
+  gather_data:
     id: latest
     use:
       worldsf.Rds: worldsf.Rds

@@ -73,8 +73,7 @@ artefacts:
 # would declare a parameter called 'a' with a default value of 1, and
 # a parameter of b with no default.
 #
-parameters:
-  date: ~
+#parameters:
 
 # Similar to "data" but sets of temporary views before the data are
 # extracted.  Can be embedded SQL strings or filenames to actual
@@ -151,15 +150,15 @@ resources:
 #           other-data.csv: data.csv
 #
 depends:
-  run_simulations:
-    id: latest(parameter:date == date && parameter:excess == TRUE)
+  gather_simulations:
+    id: latest(parameter:excess == TRUE)
     use:
       Baseline.Rds: Baseline.Rds
       No Vaccines.Rds: No Vaccines.Rds
       COVAX.Rds: COVAX.Rds
       WHO.Rds: WHO.Rds
       counterfactuals.Rds: counterfactuals.Rds
-  world_map:
+  gather_data:
     id: latest
     use:
       worldsf.Rds: worldsf.Rds

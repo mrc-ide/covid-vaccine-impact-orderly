@@ -3,8 +3,7 @@ if(!is.na(seed)){
 }
 
 df_overall <- loadCounterfactualData(c("No Vaccines", "Baseline-Direct"),
-                                          group_by = NULL,
-                                          exclude_iso3cs = exclude_iso3cs
+                                          group_by = NULL
                                           )
 
 #get deaths averted due to direct protection, on average
@@ -15,8 +14,7 @@ percent_direct <- (total-indirect)/total * 100
 #get deaths in 2021
 all_iso3c_all_reps <- readRDS("No Vaccines.Rds") %>%
   filter(date > as.Date("2020-12-08") &
-           date <= as.Date("2021-12-05"),
-         !(iso3c %in% exclude_iso3cs)) %>%
+           date <= as.Date("2021-12-08")) %>%
   group_by(iso3c, replicate) %>%
   summarise(deaths = sum(deaths))
 #add country numbers
@@ -42,12 +40,11 @@ deaths <- map(seq(50000), function(x){
 
 #deaths averted in covax countries
 non_covax_iso3cs <- c(setdiff(readRDS("counterfactuals.Rds") %>% pull(iso3c),
-                            get_covax_iso3c()), exclude_iso3cs) %>%
+                            get_covax_iso3c())) %>%
   unique()
 covax_deaths_averted <- loadCounterfactualData(
   c("No Vaccines"),
-  group_by = NULL,
-  exclude_iso3cs = non_covax_iso3cs
+  group_by = NULL
 )
 
 #number of LIC covax not meeting target

@@ -1,19 +1,16 @@
 if(!is.na(seed)){
   set.seed(seed)
 }
-
+excess <- TRUE
 ###Load data:
 iso3cs <- readRDS(
   "counterfactuals.Rds"
-) %>% pull(iso3c) %>% unique() %>% setdiff(exclude_iso3cs)
+) %>% pull(iso3c) %>% unique()
 fig1_df_overall <- loadCounterfactualData(c("No Vaccines", "Baseline-Direct"),
-                                          group_by = "date",
-                                          exclude_iso3cs = exclude_iso3cs
+                                          group_by = "date"
                                           )
 fig1_df_income <- loadCounterfactualData("No Vaccines",
-                                         group_by = c("income_group", "date")
-                                         ,
-                                         exclude_iso3cs = exclude_iso3cs)
+                                         group_by = c("income_group", "date"))
 
 if(excess){
   #need to extract data from model fits
@@ -28,23 +25,12 @@ if(excess){
   #     deaths = deaths/week_length) %>%
   #   group_by(obsDate) %>%
   #   summarise(deaths = sum(deaths))
-  fig1_df_data <- readRDS("fig1_df_data.Rds")
+  fig1_df_data <- readRDS("excess_deaths.Rds")
   #ensure there is a week between dates
   if(any(as.numeric(diff(fig1_df_data$obsDate)) != 7)){
     warning("In excess data so weeks are inconsistenly spaced.")
   }
   rm(fits)
-} else {
-  fig1_df_data <- readRDS(
-    "owid.Rds"
-  ) %>%
-    group_by(obsDate) %>%
-    filter(iso3c %in% iso3cs) %>%
-    summarise(
-      total_deaths = sum(total_deaths, na.rm = T)
-    ) %>%
-    mutate(deaths = total_deaths - lag(total_deaths, default = total_deaths[1]),
-           obsDate = as.Date(obsDate))
 }
 
 ###Figure 1 daily deaths over time:

@@ -8,8 +8,8 @@ if(!is.na(seed)){
 iso3c_reported <- readRDS("Baseline_reported.Rds") %>% pull(iso3c) %>% unique()
 iso3c_excess <- readRDS("Baseline_excess.Rds") %>% pull(iso3c) %>% unique()
 iso3cs <- intersect(iso3c_excess, iso3c_reported)
-iso3cs_drop_reported <- c(setdiff(iso3c_reported, iso3cs), exclude_iso3cs)
-iso3cs_drop_excess <- c(setdiff(iso3c_excess, iso3cs), exclude_iso3cs)
+iso3cs_drop_reported <- setdiff(iso3c_reported, iso3cs)
+iso3cs_drop_excess <- setdiff(iso3c_excess, iso3cs)
 #we'll need to rename the baseline file for each version
 file.copy("Baseline_reported.Rds", "Baseline.Rds", overwrite = TRUE)
 df_reported_total <- loadCounterfactualData(c("No Vaccines_reported"),

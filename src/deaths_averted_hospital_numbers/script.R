@@ -7,8 +7,7 @@ df_overall <- loadCounterfactualData(c("No Vaccines", "Baseline-Direct",
                                        "Baseline-Direct & No Healthcare Surging",
                                        "No Vaccines-No Healthcare Surging",
                                        "Baseline-No Healthcare Surging"),
-                                     group_by = NULL,
-                                     exclude_iso3cs = exclude_iso3cs
+                                     group_by = NULL
 )
 
 

@@ -12,8 +12,7 @@ output:
 
 #Load data and summarise, one cf at a time to work around RAM limits
 sum_df <- loadCounterfactualData(c("No Vaccines", "WHO", "COVAX"),
-                         group_by = "iso3c",
-                         exclude_iso3cs = NULL)
+                         group_by = "iso3c")
 
 ##For No vaccines we must adjust for potential floating point/rounding errors
 #causing a negative deaths averted
@@ -293,7 +292,7 @@ Column
 
 This [flexdashboard](https://pkgs.rstudio.com/flexdashboard/) displays [leaflet](https://rstudio.github.io/leaflet/)
 maps for a counter-factual-based analysis of the impact of the various COVID-19 
-vaccines up  to `r date`. Various counter-factuals, e.g. no vaccines, etc. are simulated using Imperial
+vaccines up  to `r 2021-12-08`. Various counter-factuals, e.g. no vaccines, etc. are simulated using Imperial
 College London's [nimue model](https://mrc-ide.github.io/nimue/). All other epidemic parameters 
 for each country are taken from the fits presented [here](https://mrc-ide.github.io/global-lmic-reports/).
 The simulated counter-factuals are compared to a simulation generated using these
