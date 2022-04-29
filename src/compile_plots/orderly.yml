@@ -151,7 +151,7 @@ depends:
     use:
       example_plots.Rds: example_plots.Rds
   global_deaths_averted_plot:
-    id: latest(parameter:excess == TRUE)
+    id: latest
     use:
       global_deaths_averted.Rds: plots/global_deaths_averted.Rds
   deaths_averted_table:

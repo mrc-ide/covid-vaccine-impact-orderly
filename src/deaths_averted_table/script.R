@@ -328,8 +328,6 @@ if(excess){
     `Notes:` = case_when(
       str_trim(` `) %in% c("IRQ", "SDN") ~
         paste0(`Notes:`, " Fit unable to recreate estimated deaths. Modelled deaths are lower than predicted excess mortality."),
-      str_trim(` `) %in% c("CUB", "MUS", "SYC") ~
-        paste0(`Notes:`, " 100% coverage caused by inconsistencies in vaccination data, in model logic this is actually capped to around 80% coverage as yound children are not eligible."),
       TRUE ~ `Notes:`
     ))
 } else {
@@ -343,10 +341,18 @@ if(excess){
 }
 df <- df %>%
   ungroup() %>%
-  mutate(` ` = if_else(
+  mutate(
+    `Notes:` = if_else(str_trim(` `) %in% c("PRK", "ERI"),
+                       paste0(`Notes:`, " No vaccinations given in country over period modelled."),
+                       `Notes:`),
+  ` ` = if_else(
     str_trim(` `) %in% table1_df_ind$iso3c,
     paste0("   ", countrycode(str_trim(` `), origin = "iso3c", destination = "country.name")),
     ` `
-  ))
+  ),
+  `Notes:` = if_else(map_lgl(str_split(df$`Deaths Averted by Vaccinations`, "[ \\(-]"), ~"0" %in% .x),
+    paste0(`Notes:`, " Deaths averted by Vaccinations rounded to nearest individual yielding 0 deaths averted. Deaths averted per 10K people and 10K vaccines has not been rounded."),
+    `Notes:`)
+  )
 
 readr::write_csv(df, "summary_table.csv")

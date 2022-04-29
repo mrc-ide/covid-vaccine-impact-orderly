@@ -209,7 +209,6 @@ delta_toy_example_india_id <- orderly::orderly_run("delta_toy_example_india",
                                              echo = FALSE)
 orderly::orderly_commit(delta_toy_example_india_id)
 
-
 ifr_toy_example_id <- orderly::orderly_run("ifr_toy_example",
                                              parameters = list(seed = 99),
                                              echo = FALSE)
