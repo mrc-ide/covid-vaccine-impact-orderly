@@ -87,7 +87,7 @@ fig2_vacc <- ggplot(fig2_df_extra_data %>%
   ) +
   #geom_abline(aes(intercept = -7.8, slope = 1)) +
   geom_text(aes(label = if_else(label,
-                                countrycode::countrycode(iso3c, origin = "iso3c", destination = "country.name"),
+                                str_replace_all(countrycode::countrycode(iso3c, origin = "iso3c", destination = "country.name"), "\\(Federated States of\\)", ""),
                                 NULL)),
               nudge_y = -0.15,
             hjust = 0) +

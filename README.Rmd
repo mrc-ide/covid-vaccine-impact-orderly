@@ -8,8 +8,24 @@ output: github_document
 
 This is an [orderly](https://github.com/vimc/orderly) project. The directories are:
 
-`src`: create new reports here
-`archive`: versioned results of running your report
+`src`: tasks used to generate the reports
+
+`vignettes`: guidance on running the tasks
+
+`data`: Contains the following data:
+
+  * `excess_mortality`: Fitted *nimue* models and pre-generated simulations, along
+  with vaccine allocation information, for the fits to excess mortality.
+  * `reported_deaths`: Fitted *nimue* models and pre-generated simulations, along
+  with vaccine allocation information, for the fits to reported COVID deaths. 
+  * `raw`: Raw data used in modelling:
+      * `owid.rds`: Our World In Data dataset used for vaccine allocation, downloaded 13-02-2022
+      * `excess_deaths.rds`: Excess death estimates from the Economist, downloaded 13-02-2022
+      * `combined_data.Rds`: Reported COVID deaths dataset, downloaded 13-02-2022
+      * `vaccine_agreements.rds, vaccine_doses_by_manufacturer.rds, who_vacc.rds, who_vacc_meta.rds`: Other vaccination datasets, downloaded 13-02-2022
+      * `worldsf.Rds`: World map sf used in the plotting, downloaded 20-04-2022 from https://datahub.io/core/geo-countries/r/countries.geojson
+      * `generate_counterfactuals.R`: R code used to generate the simulations from the model fits
+
 
 The purpose of this repository is to estimate the number of deaths averted by COVID-19 vaccinations to date. This utilises the [nimue](https://github.com/mrc-ide/nimue) fits generated in [global-lmic-reports-orderly](https://github.com/mrc-ide/global-lmic-reports-orderly), which are also used to produce the reports [here](https://mrc-ide.github.io/global-lmic-reports/).
 

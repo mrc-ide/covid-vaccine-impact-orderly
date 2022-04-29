@@ -146,3 +146,7 @@ depends:
       Baseline-Direct.Rds: Baseline-Direct.Rds
       Baseline.Rds: Baseline.Rds
       counterfactuals.Rds: counterfactuals.Rds
+  reported_data_for_comparison:
+    id: latest
+    use:
+      No Vaccines_reported.Rds: No Vaccines_reported.Rds

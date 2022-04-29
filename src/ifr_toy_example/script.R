@@ -313,7 +313,7 @@ results_df <- map(seq_along(variable_parameters), function(x){
   #use dr jacoby
   pmcmc_pars_list$n_mcmc <- round(pmcmc_pars_list$n_mcmc/(10*length(pmcmc_pars_list$pars_init)))
   pmcmc_pars_list$drjacoby_list <- list(
-    rungs = 15,
+    rungs = 10,
     alpha = 2.5
   )
   pmcmc_pars_list$use_drjacoby <- TRUE

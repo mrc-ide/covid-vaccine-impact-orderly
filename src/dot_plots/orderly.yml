@@ -92,6 +92,7 @@ packages:
   - cowplot
   - ggpubr
   - tidyr
+  - stringr
   - squire.page
 
 

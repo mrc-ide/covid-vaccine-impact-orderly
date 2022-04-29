@@ -168,6 +168,11 @@ that it is simple to modify dimensions etc.
 ## Numbers for Report
 
 ```{r, echo=TRUE, eval=FALSE}
+#a dummy task to get around that orderly tasks can't depend on the same type of
+#task twice
+reported_data_for_comparison_id <- orderly::orderly_run("reported_data_for_comparison")
+orderly::orderly_commit(reported_data_for_comparison_id)
+
 generate_numbers_id <- orderly::orderly_run("generate_numbers",
                                          parameters = list(
                                              seed = 8006646
@@ -176,7 +181,7 @@ generate_numbers_id <- orderly::orderly_run("generate_numbers",
 orderly::orderly_commit(generate_numbers_id)
 ```
 
-Generate any other values needed
+Generate any other values needed for the report.
 
 # Supplementry Plots
 
@@ -215,11 +220,6 @@ Produce model fits for some simulated data to explore the relationship between
 immune escape and deaths averted.
 
 ```{r, echo=TRUE, eval=FALSE}
-#a dummy task to get around that orderly tasks can't depend on the same type of
-#task twice
-reported_data_for_comparison_id <- orderly::orderly_run("reported_data_for_comparison")
-orderly::orderly_commit(reported_data_for_comparison_id)
-
 compare_excess_reported_id <- orderly::orderly_run("compare_excess_reported",
                                            parameters = list(
                                              seed = 991001
