@@ -30,7 +30,6 @@ if(excess){
   if(any(as.numeric(diff(fig1_df_data$obsDate)) != 7)){
     warning("In excess data so weeks are inconsistenly spaced.")
   }
-  rm(fits)
 }
 
 ###Figure 1 daily deaths over time:
@@ -44,7 +43,7 @@ fig1_1 <- ggplot(fig1_df_overall %>%
                           counterfactual == "No Vaccines")) +
   geom_col(data = fig1_df_data %>%
              filter(obsDate > "2021-01-1"),
-           aes(x = obsDate, y = deaths, fill = data_col),
+           aes(x = obsDate + 7/2, y = deaths, fill = data_col),
            alpha = 0.75,
            #width = 7,
            colour = "white") +
