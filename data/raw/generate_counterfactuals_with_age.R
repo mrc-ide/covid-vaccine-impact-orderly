@@ -281,13 +281,74 @@ update_counterfactual <- function(out, counterfactual){
   return(out)
 }
 
+#WHO goal counterfactual 40% total pop full dose
+who_data <- lapply(iso3cs, function(iso3c){
+  fit <- readRDS(paste0(fit_loc, "/", iso3c, ".Rds"))
+  eligible_pop <- sum(squire::population$n[squire::population$iso3c == iso3c])
+  #check if vacciens are given at all
+  if(any(fit$interventions$max_vaccine > 0)){
+    #check if over 40% full dose coverage (assuming all vaccines are given)
+    second_dosed <- sum(fit$interventions$max_vaccine)*tail(fit$interventions$dose_ratio, 1)
+    if(second_dosed/eligible_pop < 0.4){
+      #figure out if we need to scale up first doses or just second
+      first_doses <- fit$interventions$max_vaccine
+      dose_ratio <- fit$interventions$dose_ratio
+      if(sum(first_doses)/eligible_pop < 0.4){
+        #first doses too low scale up first_doses
+        first_doses <- first_doses/(sum(first_doses)/eligible_pop/0.4)
+        #second doses to 100%
+        dose_ratio_final <- 1
+      }else{
+        #calculate 2nd dose target
+        dose_ratio_final <- 0.4*eligible_pop/sum(first_doses)
+      }
+      #scale up dose ratio to meet target
+      dose_ratio <- dose_ratio/tail(dose_ratio, 1)*dose_ratio_final
+      #correct if increases above 1
+      dose_ratio <- if_else(dose_ratio > 1, as.double(1), dose_ratio)
+      list(
+        date_vaccine_change = fit$interventions$date_vaccine_change,
+        date_vaccine_efficacy = fit$interventions$date_vaccine_change,
+        max_vaccine = first_doses,
+        dose_ratio = dose_ratio
+      )
+    } else {
+      #doesn't need changing
+      NULL
+    }
+  } else {
+    #if country doesn't have any vaccines yet, we assume they start mid 2021
+    start_date <- as.Date("2021-06-01")
+    dates <- seq(start_date, as.Date(date), 1)
+    #calculate dose ratio changes
+    first_dose_only_period <- 18
+    build_up <- 21
+    dose_ratio <- c(rep(0, first_dose_only_period),
+                    seq(0, 1, length.out = build_up + 1)[-1],
+                    rep(1, length(dates) + 1 - first_dose_only_period - build_up))
+    #caclulate first doses
+    v_r_b <- eligible_pop*0.4/(sum(1:build_up) + build_up*(length(dates)-build_up))
+    v_r_pb <- build_up*v_r_b
+    first_doses <- c(0, v_r_b*seq(1, build_up), rep(v_r_pb, length(dates)-build_up))
+    list(
+      date_vaccine_change = dates,
+      date_vaccine_efficacy = dates,
+      max_vaccine = first_doses,
+      dose_ratio = dose_ratio[-1]
+    )
+  }
+})
+names(who_data) <- iso3cs
+
+
 counterfactuals <- lapply(iso3cs, function(iso3c){
   list(
     `No Vaccines` = list(max_vaccine = c(0,0),
                          dose_ratio = 0,
                          date_vaccine_change = as.Date(date) - 1,
                          date_vaccine_efficacy = as.Date(date) - 1
-    ))
+    ),
+    `WHO` = who_data[[iso3c]])
 })
 names(counterfactuals) <- iso3cs
 
