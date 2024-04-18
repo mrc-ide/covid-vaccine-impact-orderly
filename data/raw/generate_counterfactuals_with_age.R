@@ -90,7 +90,7 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = FALSE,
   }
 
   # format the counter factual run
-  baseline_deaths <- squire.page::nimue_format(baseline, c("deaths", "infections"), date_0 = date_0,
+  baseline_deaths <- squire.page::nimue_format(baseline, c("deaths", "infections", "hospitalisations"), date_0 = date_0,
                                                reduce_age = reduce_age) %>%
     dplyr::distinct() %>%
     tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
@@ -110,7 +110,7 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = FALSE,
     #indirect protection
     baseline_direct <- squire.page::generate_draws(remove_indirect(out), pars.list, draws)
     # format the counter factual run
-    baseline_direct_deaths <- squire.page::nimue_format(baseline_direct, c("deaths", "infections"), date_0 = date_0,
+    baseline_direct_deaths <- squire.page::nimue_format(baseline_direct, c("deaths", "infections", "hospitalisations"), date_0 = date_0,
                                                         reduce_age = reduce_age) %>%
       dplyr::distinct() %>%
       tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
@@ -130,7 +130,7 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = FALSE,
     #healthcare
     baseline_healthcare <- squire.page::generate_draws(remove_healthcare(out), pars.list, draws)
     # format the counter factual run
-    baseline_healthcare_deaths <- squire.page::nimue_format(baseline_healthcare, c("deaths", "infections"), date_0 = date_0,
+    baseline_healthcare_deaths <- squire.page::nimue_format(baseline_healthcare, c("deaths", "infections", "hospitalisations"), date_0 = date_0,
                                                             reduce_age = reduce_age) %>%
       dplyr::distinct() %>%
       tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
@@ -150,7 +150,7 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = FALSE,
     #healthcare+direct
     baseline_healthcare_direct <- squire.page::generate_draws(remove_indirect(remove_healthcare(out)), pars.list, draws)
     # format the counter factual run
-    baseline_healthcare_direct_deaths <- squire.page::nimue_format(baseline_healthcare_direct, c("deaths", "infections"), date_0 = date_0,
+    baseline_healthcare_direct_deaths <- squire.page::nimue_format(baseline_healthcare_direct, c("deaths", "infections", "hospitalisations"), date_0 = date_0,
                                                                    reduce_age = reduce_age) %>%
       dplyr::distinct() %>%
       tidyr::pivot_wider(names_from = .data$compartment, values_from = .data$y) %>%
@@ -187,7 +187,7 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = FALSE,
       counter <- squire.page::generate_draws(out = update_counterfactual(out, counterfactual[[counterIndex]]),
                                              pars.list = pars.list, draws = draws)
       #format the counter factual run
-      counter_df <- squire.page::nimue_format(counter, c("deaths", "infections"),
+      counter_df <- squire.page::nimue_format(counter, c("deaths", "infections", "hospitalisations"),
                                               date_0 = date_0,
                                               reduce_age = reduce_age) %>%
         dplyr::distinct() %>%
@@ -224,7 +224,8 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = FALSE,
                              dplyr::mutate(
                                date = NA,
                                deaths = out$interventions$pre_epidemic_isolated_deaths,
-                               infections = 0
+                               infections = 0,
+                               hospitalisations = 0
                              )
         )
       } else {
@@ -236,7 +237,8 @@ deaths_averted <- function(out, draws, counterfactual, reduce_age = FALSE,
                              dplyr::mutate(
                                date = NA,
                                deaths = out$interventions$pre_epidemic_isolated_deaths/length(age_group),
-                               infections = 0
+                               infections = 0,
+                               hospitalisations = 0
                              ) %>% dplyr::ungroup()
         )
       }
@@ -364,7 +366,7 @@ submission_lists <- map(
 )
 
 #this will take a long time, originally run on a cluster, too memory intensive to be run in parrallel
-walk(submission_lists, function(sub_list){
+furrr::future_walk(submission_lists, function(sub_list){
   out <- readRDS(paste0(fit_loc, "/", as.character(sub_list$iso3c), ".Rds"))
 
   df <- suppressMessages(
